@@ -17,6 +17,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Tarrito Barber Shop - Agendá tu Turno",
   description: "La mejor barbería de Aguilares, Tucumán. Agenda tu cita online fácil y rápido.",
+  icons: {
+    icon: '/assets/tarritoOscuro.png',
+    apple: '/assets/tarritoOscuro.png',
+  },
 };
 
 export default function RootLayout({
