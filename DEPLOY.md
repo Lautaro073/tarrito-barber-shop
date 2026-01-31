@@ -144,7 +144,7 @@ service cloud.firestore {
 - ✅ Home: `https://tu-proyecto.vercel.app`
 - ✅ Reservar: `https://tu-proyecto.vercel.app/reservar`
 - ✅ Cancelar: `https://tu-proyecto.vercel.app/cancelar-turno`
-- ✅ Admin: `https://tu-proyecto.vercel.app/admin/dashboard`
+- ✅ Admin: `https://tu-proyecto.vercel.app/tarritobarbershop2023/dashboard`
 
 ### Checklist:
 

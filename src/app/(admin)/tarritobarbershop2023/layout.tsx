@@ -19,11 +19,11 @@ export default function AdminLayout({
                     <div className="flex items-center justify-between">
                         <h1 className="text-xl font-bold">💈 Panel Admin - Tarrito</h1>
                         <nav className="flex gap-4">
-                            <a href="/admin/dashboard" className="text-sm hover:text-primary">Dashboard</a>
-                            <a href="/admin/horarios" className="text-sm hover:text-primary">Horarios</a>
-                            <a href="/admin/servicios" className="text-sm hover:text-primary">Servicios</a>
-                            <a href="/admin/turnos" className="text-sm hover:text-primary">Turnos</a>
-                            <a href="/admin/estadisticas" className="text-sm hover:text-primary">Estadísticas</a>
+                            <a href="/tarritobarbershop2023/dashboard" className="text-sm hover:text-primary">Dashboard</a>
+                            <a href="/tarritobarbershop2023/horarios" className="text-sm hover:text-primary">Horarios</a>
+                            <a href="/tarritobarbershop2023/servicios" className="text-sm hover:text-primary">Servicios</a>
+                            <a href="/tarritobarbershop2023/turnos" className="text-sm hover:text-primary">Turnos</a>
+                            <a href="/tarritobarbershop2023/estadisticas" className="text-sm hover:text-primary">Estadísticas</a>
                         </nav>
                     </div>
                 </div>

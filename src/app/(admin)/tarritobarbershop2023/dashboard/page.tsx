@@ -11,7 +11,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Link href="/admin/horarios">
+                <Link href="/tarritobarbershop2023/horarios">
                     <Card className="p-6 hover:shadow-lg transition-all cursor-pointer hover:border-primary">
                         <div className="text-4xl mb-3">🕐</div>
                         <h3 className="text-xl font-bold text-foreground mb-2">Horarios</h3>
@@ -22,7 +22,7 @@ export default function DashboardPage() {
                     </Card>
                 </Link>
 
-                <Link href="/admin/servicios">
+                <Link href="/tarritobarbershop2023/servicios">
                     <Card className="p-6 hover:shadow-lg transition-all cursor-pointer hover:border-primary">
                         <div className="text-4xl mb-3">✂️</div>
                         <h3 className="text-xl font-bold text-foreground mb-2">Servicios</h3>
@@ -33,7 +33,7 @@ export default function DashboardPage() {
                     </Card>
                 </Link>
 
-                <Link href="/admin/turnos">
+                <Link href="/tarritobarbershop2023/turnos">
                     <Card className="p-6 hover:border-primary transition-colors cursor-pointer">
                         <div className="text-3xl mb-3">📅</div>
                         <h3 className="text-xl font-bold text-foreground mb-2">Turnos</h3>
@@ -44,7 +44,7 @@ export default function DashboardPage() {
                     </Card>
                 </Link>
 
-                <Link href="/admin/estadisticas">
+                <Link href="/tarritobarbershop2023/estadisticas">
                     <Card className="p-6 hover:shadow-lg transition-all cursor-pointer hover:border-primary">
                         <div className="text-4xl mb-3">📊</div>
                         <h3 className="text-xl font-bold text-foreground mb-2">Estadísticas</h3>
