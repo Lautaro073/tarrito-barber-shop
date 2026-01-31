@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 type DiaSemana = {
     dia: string;
@@ -39,6 +40,7 @@ export default function HorariosPage() {
                 }
             } catch (error) {
                 console.error('Error al cargar horarios:', error);
+                toast.error('Error al cargar los horarios');
             } finally {
                 setCargando(false);
             }
@@ -70,10 +72,10 @@ export default function HorariosPage() {
 
             if (!response.ok) throw new Error('Error al guardar');
 
-            alert('✅ Horarios guardados exitosamente');
+            toast.success('Horarios guardados exitosamente');
         } catch (error) {
             console.error(error);
-            alert('❌ Error al guardar horarios');
+            toast.error('Error al guardar los horarios');
         } finally {
             setGuardando(false);
         }
@@ -130,17 +132,17 @@ export default function HorariosPage() {
                     ))}
                 </div>
 
-        <div className="mt-6 flex gap-3">
-            <Button onClick={guardarHorarios} disabled={guardando} className="px-8">
-                {guardando ? 'Guardando...' : 'Guardar Horarios'}
-            </Button>
-        </div>
-    </Card>
+                <div className="mt-6 flex gap-3">
+                    <Button onClick={guardarHorarios} disabled={guardando} className="px-8">
+                        {guardando ? 'Guardando...' : 'Guardar Horarios'}
+                    </Button>
+                </div>
+            </Card>
 
-    <Card className="p-6 bg-muted/30">
+            <Card className="p-6 bg-muted/30">
                 <h3 className="font-bold text-foreground mb-2">💡 Información</h3>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Los horarios se generan cada 40 minutos según la duración de los servicios</li>
+                    <li>• Los horarios se generan según la duración de los servicios</li>
                     <li>• Los turnos ocupados no se mostrarán a los clientes</li>
                     <li>• Podés modificar estos horarios en cualquier momento</li>
                 </ul>
