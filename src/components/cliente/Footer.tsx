@@ -189,6 +189,7 @@ export default function Footer() {
           </div>
           <div className="text-center text-sm text-muted-foreground">
             <p>&copy; {new Date().getFullYear()} Tarrito Barber Shop. Todos los derechos reservados.</p>
+            <p>Desarrollado por <a href="https://wa.me/+5493865575688" target="_blank" rel="noopener noreferrer">Lautaro Jimenez</a>.</p>
           </div>
         </div>
       </div>
