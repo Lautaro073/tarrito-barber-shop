@@ -126,7 +126,24 @@ export default function ServiceSelector() {
 
                     // Filtrar horarios ocupados
                     const horariosOcupados = data.citas?.map((cita: any) => cita.hora) || [];
-                    const horariosLibres = horariosGenerados.filter(h => !horariosOcupados.includes(h));
+                    let horariosLibres = horariosGenerados.filter(h => !horariosOcupados.includes(h));
+
+                    // Si es HOY, filtrar horarios que ya pasaron
+                    const hoy = new Date();
+                    const esHoy = selectedDate.toDateString() === hoy.toDateString();
+
+                    if (esHoy) {
+                        const horaActual = hoy.getHours();
+                        const minutosActuales = hoy.getMinutes();
+                        const tiempoActualEnMinutos = horaActual * 60 + minutosActuales;
+
+                        horariosLibres = horariosLibres.filter(horario => {
+                            const [hora, minutos] = horario.split(':').map(Number);
+                            const tiempoHorarioEnMinutos = hora * 60 + minutos;
+                            // Agregar 30 minutos de margen para dar tiempo de reservar
+                            return tiempoHorarioEnMinutos > tiempoActualEnMinutos + 30;
+                        });
+                    }
 
                     setHorariosDisponibles(horariosLibres);
 
