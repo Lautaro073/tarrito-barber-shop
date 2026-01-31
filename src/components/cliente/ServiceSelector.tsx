@@ -57,6 +57,10 @@ export default function ServiceSelector() {
     const [configuracionHorarios, setConfiguracionHorarios] = useState<any>(null);
     const [mostrarAlerta, setMostrarAlerta] = useState(false);
     const [mostrarDialogoConfirmacion, setMostrarDialogoConfirmacion] = useState(false);
+    const [mostrarDialogoExito, setMostrarDialogoExito] = useState(false);
+    const [mostrarDialogoError, setMostrarDialogoError] = useState(false);
+    const [mensajeError, setMensajeError] = useState('');
+    const [datosReserva, setDatosReserva] = useState<{ fecha: string, hora: string, servicio: string } | null>(null);
 
     // Cargar servicios desde Firebase con caché
     useEffect(() => {
@@ -200,14 +204,66 @@ export default function ServiceSelector() {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.error || 'Error al reservar turno');
+                // Manejar error con diálogo visual
+                if (data.code === 'HORARIO_OCUPADO') {
+                    // Error específico de horario ocupado
+                    setMensajeError(data.error);
+                    setMostrarDialogoError(true);
+                    // Recargar horarios disponibles
+                    const cargarHorariosDisponibles = async () => {
+                        if (selectedDate && configuracionHorarios && selectedService) {
+                            const fechaStr = selectedDate.toISOString().split('T')[0];
+                            const response = await fetch(`/api/citas?fecha=${fechaStr}`);
+                            const citasData = await response.json();
+                            const diaSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][selectedDate.getDay()];
+                            const configDia = configuracionHorarios.find((d: any) => d.dia === diaSemana);
+                            if (configDia && configDia.activo) {
+                                const servicioSeleccionado = servicios.find(s => s.id === selectedService);
+                                const duracion = servicioSeleccionado?.duracionMinutos || 40;
+                                let horariosGenerados: string[] = [];
+                                if (configDia.franjas && Array.isArray(configDia.franjas)) {
+                                    configDia.franjas.forEach((franja: any) => {
+                                        const horariosFramja = generarHorarios(franja.horaInicio, franja.horaFin, duracion);
+                                        horariosGenerados = [...horariosGenerados, ...horariosFramja];
+                                    });
+                                } else {
+                                    horariosGenerados = generarHorarios(configDia.horaInicio, configDia.horaFin, duracion);
+                                }
+                                const horariosOcupados = citasData.citas?.map((cita: any) => cita.hora) || [];
+                                let horariosLibres = horariosGenerados.filter(h => !horariosOcupados.includes(h));
+                                const hoy = new Date();
+                                const esHoy = selectedDate.toDateString() === hoy.toDateString();
+                                if (esHoy) {
+                                    const horaActual = hoy.getHours();
+                                    const minutosActuales = hoy.getMinutes();
+                                    const tiempoActualEnMinutos = horaActual * 60 + minutosActuales;
+                                    horariosLibres = horariosLibres.filter(horario => {
+                                        const [hora, minutos] = horario.split(':').map(Number);
+                                        const tiempoHorarioEnMinutos = hora * 60 + minutos;
+                                        return tiempoHorarioEnMinutos > tiempoActualEnMinutos + 30;
+                                    });
+                                }
+                                setHorariosDisponibles(horariosLibres);
+                            }
+                        }
+                    };
+                    cargarHorariosDisponibles();
+                } else {
+                    // Otros errores
+                    setMensajeError(data.error || 'Error al reservar turno. Por favor intentá nuevamente.');
+                    setMostrarDialogoError(true);
+                }
+                return;
             }
 
-            // Éxito - Mostrar toast
-            toast.success('¡Turno reservado exitosamente! 🎉', {
-                description: `Fecha: ${selectedDate?.toLocaleDateString('es-AR')} - Hora: ${selectedTime}`,
-                duration: 5000,
+            // Éxito - Mostrar dialog con animación
+            const servicioNombre = servicios.find(s => s.id === selectedService)?.nombre || 'Servicio';
+            setDatosReserva({
+                fecha: selectedDate?.toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) || '',
+                hora: selectedTime || '',
+                servicio: servicioNombre
             });
+            setMostrarDialogoExito(true);
 
             // Limpiar formulario
             setSelectedService(null);
@@ -219,9 +275,8 @@ export default function ServiceSelector() {
 
         } catch (error) {
             console.error('Error:', error);
-            toast.error('Error al reservar turno', {
-                description: 'Por favor intentá nuevamente.',
-            });
+            setMensajeError('Error de conexión. Por favor verificá tu internet e intentá nuevamente.');
+            setMostrarDialogoError(true);
         }
     };
 
@@ -429,6 +484,85 @@ export default function ServiceSelector() {
                         </Button>
                         <Button type="button" onClick={confirmarReserva}>
                             Confirmar Reserva
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Diálogo de éxito */}
+            <Dialog open={mostrarDialogoExito} onOpenChange={setMostrarDialogoExito}>
+                <DialogContent className="max-w-md text-center">
+                    <DialogHeader>
+                        <div className="mx-auto mb-4 w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                            <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-400 animate-in zoom-in duration-300" />
+                        </div>
+                        <DialogTitle className="text-2xl">¡Turno Reservado!</DialogTitle>
+                        <DialogDescription className="text-base">
+                            Tu turno ha sido confirmado exitosamente
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 py-4">
+                        <div className="bg-accent p-4 rounded-lg space-y-2 text-left">
+                            <p className="font-semibold text-foreground">
+                                ✂️ {datosReserva?.servicio}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                📅 {datosReserva?.fecha}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                🕐 {datosReserva?.hora} hs
+                            </p>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                            Recordá llegar entre 10 y 5 minutos antes de tu turno
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            className="w-full"
+                            onClick={() => setMostrarDialogoExito(false)}
+                        >
+                            Entendido
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Diálogo de error */}
+            <Dialog open={mostrarDialogoError} onOpenChange={setMostrarDialogoError}>
+                <DialogContent className="max-w-md text-center">
+                    <DialogHeader>
+                        <div className="mx-auto mb-4 w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                            <XCircle className="h-12 w-12 text-red-600 dark:text-red-400 animate-in zoom-in duration-300" />
+                        </div>
+                        <DialogTitle className="text-2xl">¡Ups! Hubo un problema</DialogTitle>
+                        <DialogDescription className="text-base">
+                            {mensajeError}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <div className="bg-muted p-4 rounded-lg text-left">
+                            <p className="text-sm text-muted-foreground">
+                                💡 <strong>Sugerencias:</strong>
+                            </p>
+                            <ul className="text-sm text-muted-foreground mt-2 space-y-1 ml-4">
+                                <li>• Elegí otro horario disponible</li>
+                                <li>• Probá con otra fecha</li>
+                                <li>• Si el problema persiste, contactanos por WhatsApp</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            className="w-full"
+                            onClick={() => {
+                                setMostrarDialogoError(false);
+                                setSelectedTime(null); // Limpiar hora seleccionada
+                            }}
+                        >
+                            Elegir otro horario
                         </Button>
                     </DialogFooter>
                 </DialogContent>
