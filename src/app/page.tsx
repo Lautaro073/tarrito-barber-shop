@@ -1,65 +1,105 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import Header from '@/components/cliente/Header';
+import Footer from '@/components/cliente/Footer';
+import { getServicios } from '@/lib/servicios-cache';
+
+interface Servicio {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  precio: number;
+  duracionMinutos: number;
+  icono: string;
+  activo: boolean;
+}
+
+export default function HomePage() {
+  const [servicios, setServicios] = useState<Servicio[]>([]);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    const cargarServicios = async () => {
+      setCargando(true);
+      const data = await getServicios();
+      setServicios(data);
+      setCargando(false);
+    };
+    cargarServicios();
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <>
+      <Header />
+
+      <main className="flex-1">
+        {/* Hero Simple */}
+        <section className="bg-gradient-to-b from-muted/30 to-background py-12 md:py-16 px-4">
+          <div className="container mx-auto text-center max-w-3xl">
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+              💈 Tarrito Barber Shop
+            </h1>
+            <p className="text-lg text-muted-foreground mb-6">
+              Aguilares, Tucumán - Agendá tu turno en segundos
+            </p>
+            <Link href="/reservar">
+              <Button size="lg" className="text-lg px-8 py-4">
+                Agendar Turno
+              </Button>
+            </Link>
+          </div>
+        </section>
+
+        {/* Servicios Rápidos */}
+        <section className="py-8 px-4 bg-background">
+          <div className="container mx-auto max-w-4xl">
+            <div className="grid md:grid-cols-2 gap-4">
+              {cargando ? (
+                // Skeleton loader
+                [...Array(2)].map((_, i) => (
+                  <Card key={i} className="p-5">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-muted rounded-full animate-pulse"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-5 bg-muted rounded animate-pulse w-3/4"></div>
+                        <div className="h-3 bg-muted rounded animate-pulse w-1/2"></div>
+                        <div className="h-3 bg-muted rounded animate-pulse w-2/3"></div>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                servicios.map((servicio) => (
+                  <Link key={servicio.id} href={`/reservar?servicio=${servicio.id}`}>
+                    <Card className="p-5 cursor-pointer transition-all hover:border-primary hover:shadow-md">
+                      <div className="flex items-start gap-4">
+                        <div className="text-3xl">{servicio.icono}</div>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-foreground">{servicio.nombre}</h3>
+                          {servicio.descripcion && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {servicio.descripcion}
+                            </p>
+                          )}
+                          <p className="text-sm text-muted-foreground mt-2">
+                            {servicio.duracionMinutos} min · ${servicio.precio.toLocaleString('es-AR')} ARS
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
+        </section>
       </main>
-    </div>
+
+      <Footer />
+    </>
   );
 }
