@@ -104,7 +104,19 @@ export default function ServiceSelector() {
             if (configDia && configDia.activo) {
                 const servicioSeleccionado = servicios.find(s => s.id === selectedService);
                 const duracion = servicioSeleccionado?.duracionMinutos || 40;
-                const horariosGenerados = generarHorarios(configDia.horaInicio, configDia.horaFin, duracion);
+
+                // Generar horarios para todas las franjas del día
+                let horariosGenerados: string[] = [];
+                if (configDia.franjas && Array.isArray(configDia.franjas)) {
+                    // Nuevo formato con múltiples franjas
+                    configDia.franjas.forEach((franja: any) => {
+                        const horariosFramja = generarHorarios(franja.horaInicio, franja.horaFin, duracion);
+                        horariosGenerados = [...horariosGenerados, ...horariosFramja];
+                    });
+                } else {
+                    // Formato antiguo (compatibilidad hacia atrás)
+                    horariosGenerados = generarHorarios(configDia.horaInicio, configDia.horaFin, duracion);
+                }
 
                 // Consultar citas ya agendadas para esta fecha
                 try {

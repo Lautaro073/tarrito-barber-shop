@@ -5,11 +5,17 @@ import { Instagram, MapPin, Phone, X } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
+interface FranjaHoraria {
+  horaInicio: string;
+  horaFin: string;
+}
+
 interface HorarioDia {
   dia: string;
   activo: boolean;
-  horaInicio: string;
-  horaFin: string;
+  franjas?: FranjaHoraria[];
+  horaInicio?: string; // Compatibilidad hacia atrás
+  horaFin?: string; // Compatibilidad hacia atrás
 }
 
 export default function Footer() {
@@ -46,7 +52,16 @@ export default function Footer() {
       const config = horarios.find(h => h.dia === dia);
 
       if (config?.activo) {
-        const nuevoHorario = `${config.horaInicio} - ${config.horaFin}`;
+        let nuevoHorario = '';
+
+        // Nuevo formato con múltiples franjas
+        if (config.franjas && config.franjas.length > 0) {
+          nuevoHorario = config.franjas.map(f => `${f.horaInicio} - ${f.horaFin}`).join(', ');
+        }
+        // Formato antiguo (compatibilidad hacia atrás)
+        else if (config.horaInicio && config.horaFin) {
+          nuevoHorario = `${config.horaInicio} - ${config.horaFin}`;
+        }
 
         if (horarioActual === nuevoHorario) {
           grupoActual.push(dia);
