@@ -33,6 +33,8 @@ export default function EstadisticasAdmin() {
     const [servicios, setServicios] = useState<Servicio[]>([]);
     const [cargando, setCargando] = useState(true);
     const [fechaEspecifica, setFechaEspecifica] = useState('');
+    const [semanaEspecifica, setSemanaEspecifica] = useState('');
+    const [mesEspecifico, setMesEspecifico] = useState('');
 
     useEffect(() => {
         cargarDatos();
@@ -41,12 +43,10 @@ export default function EstadisticasAdmin() {
     const cargarDatos = async () => {
         setCargando(true);
         try {
-            // Cargar servicios
             const serviciosRes = await fetch('/api/servicios');
             const serviciosData = await serviciosRes.json();
             setServicios(serviciosData.servicios || []);
 
-            // Cargar turnos
             const turnosRes = await fetch('/api/citas/all');
             const turnosData = await turnosRes.json();
             setTurnos(turnosData.turnos || []);
@@ -76,14 +76,10 @@ export default function EstadisticasAdmin() {
     if (cargando) {
         return (
             <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold text-foreground">Estadísticas</h1>
-                        <p className="text-muted-foreground mt-1">Cargando estadísticas...</p>
-                    </div>
+                <div>
+                    <h1 className="text-3xl font-bold text-foreground">Estadísticas</h1>
+                    <p className="text-muted-foreground mt-1">Cargando estadísticas...</p>
                 </div>
-
-                {/* Ganancias skeleton */}
                 <div className="grid md:grid-cols-3 gap-4">
                     {[1, 2, 3].map(i => (
                         <Card key={i} className="p-4">
@@ -92,11 +88,9 @@ export default function EstadisticasAdmin() {
                         </Card>
                     ))}
                 </div>
-
-                {/* Gráfico skeleton */}
                 <Card className="p-6">
                     <div className="h-6 bg-muted rounded animate-pulse w-48 mb-4" />
-                    <div className="h-[300px] bg-muted rounded animate-pulse" />
+                    <div className="h-75 bg-muted rounded animate-pulse" />
                 </Card>
             </div>
         );
@@ -104,64 +98,11 @@ export default function EstadisticasAdmin() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div>
                 <h1 className="text-3xl font-bold text-foreground">📊 Estadísticas y Ganancias</h1>
-                <p className="text-muted-foreground mt-1">
-                    Visualizá el rendimiento de tu negocio
-                </p>
+                <p className="text-muted-foreground mt-1">Visualizá el rendimiento de tu negocio</p>
             </div>
 
-            {/* Filtro por fecha específica */}
-            <Card className="p-6">
-                <h3 className="text-lg font-bold text-foreground mb-4">📅 Consultar Ganancia por Día</h3>
-                <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                        <Label htmlFor="fechaEspecifica" className="text-sm text-muted-foreground mb-2 block">
-                            Seleccioná una fecha
-                        </Label>
-                        <Input
-                            id="fechaEspecifica"
-                            type="date"
-                            value={fechaEspecifica}
-                            onChange={(e) => setFechaEspecifica(e.target.value)}
-                            className="w-full"
-                        />
-                    </div>
-                    <div className="flex items-center">
-                        {fechaEspecifica ? (
-                            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border-2 border-green-200 dark:border-green-800 w-full">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-green-100 dark:bg-green-900/40 p-3 rounded-full">
-                                        <Calendar className="h-6 w-6 text-green-600 dark:text-green-400" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">
-                                            {new Date(fechaEspecifica + 'T00:00:00').toLocaleDateString('es-AR', {
-                                                weekday: 'long',
-                                                year: 'numeric',
-                                                month: 'long',
-                                                day: 'numeric'
-                                            })}
-                                        </p>
-                                        <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-                                            ${calcularGanancia(fechaEspecifica).toLocaleString('es-AR')}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="bg-muted/50 p-4 rounded-lg w-full text-center">
-                                <p className="text-sm text-muted-foreground">
-                                    Seleccioná una fecha para ver la ganancia del día
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </Card>
-
-            {/* Ganancias */}
             <div className="grid md:grid-cols-3 gap-4">
                 <Card className="p-4">
                     <p className="text-sm text-muted-foreground mb-1">💰 Ganado Hoy</p>
@@ -186,7 +127,6 @@ export default function EstadisticasAdmin() {
                             const inicioSemana = new Date(hoy);
                             inicioSemana.setDate(hoy.getDate() - hoy.getDay());
                             const inicioStr = inicioSemana.toISOString().split('T')[0];
-
                             return turnos
                                 .filter(t => t.fecha >= inicioStr && t.estado === 'completado')
                                 .reduce((total, t) => {
@@ -204,7 +144,6 @@ export default function EstadisticasAdmin() {
                             const hoy = new Date();
                             const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
                             const inicioStr = inicioMes.toISOString().split('T')[0];
-
                             return turnos
                                 .filter(t => t.fecha >= inicioStr && t.estado === 'completado')
                                 .reduce((total, t) => {
@@ -217,7 +156,6 @@ export default function EstadisticasAdmin() {
                 </Card>
             </div>
 
-            {/* Gráfico de Ganancias */}
             <Card className="p-6">
                 <h3 className="text-lg font-bold text-foreground mb-4">📈 Ganancias últimos 7 días</h3>
                 <ResponsiveContainer width="100%" height={300}>
@@ -233,7 +171,6 @@ export default function EstadisticasAdmin() {
                                     const servicio = servicios.find(s => s.id === t.servicioId);
                                     return total + (servicio?.precio || 0);
                                 }, 0);
-
                             datos.push({
                                 dia: fecha.toLocaleDateString('es-AR', { weekday: 'short', day: '2-digit', month: '2-digit' }),
                                 ganancia,
@@ -244,15 +181,12 @@ export default function EstadisticasAdmin() {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="dia" />
                         <YAxis />
-                        <Tooltip
-                            formatter={(value: number | undefined) => [`$${(value || 0).toLocaleString('es-AR')}`, 'Ganancia']}
-                        />
+                        <Tooltip formatter={(value: number | undefined) => [`$${(value || 0).toLocaleString('es-AR')}`, 'Ganancia']} />
                         <Bar dataKey="ganancia" fill="#10b981" radius={[8, 8, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             </Card>
 
-            {/* Estadísticas adicionales */}
             <div className="grid md:grid-cols-2 gap-4">
                 <Card className="p-6">
                     <h3 className="text-lg font-bold text-foreground mb-4">📋 Resumen del Mes</h3>
@@ -306,15 +240,12 @@ export default function EstadisticasAdmin() {
                                     acc[t.servicioId] = (acc[t.servicioId] || 0) + 1;
                                     return acc;
                                 }, {} as Record<string, number>);
-
                             const topServicios = Object.entries(servicioCount)
                                 .sort(([, a], [, b]) => b - a)
                                 .slice(0, 3);
-
                             if (topServicios.length === 0) {
                                 return <p className="text-muted-foreground text-sm">No hay servicios completados aún</p>;
                             }
-
                             return topServicios.map(([servicioId, count], index) => {
                                 const servicio = servicios.find(s => s.id === servicioId);
                                 return (
@@ -330,6 +261,100 @@ export default function EstadisticasAdmin() {
                     </div>
                 </Card>
             </div>
+
+            <Card className="p-6">
+                <h3 className="text-lg font-bold text-foreground mb-4">📅 Consultar Ganancias Específicas</h3>
+                <div className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <Label htmlFor="fechaEspecifica" className="text-sm font-medium mb-2 block">Por Día</Label>
+                            <Input id="fechaEspecifica" type="date" value={fechaEspecifica} onChange={(e) => setFechaEspecifica(e.target.value)} className="w-full" />
+                        </div>
+                        <div className="flex items-center">
+                            {fechaEspecifica ? (
+                                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border-2 border-green-200 dark:border-green-800 w-full">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-green-100 dark:bg-green-900/40 p-3 rounded-full">
+                                            <Calendar className="h-6 w-6 text-green-600 dark:text-green-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">{new Date(fechaEspecifica + 'T00:00:00').toLocaleDateString('es-AR', {weekday: 'long',day: 'numeric',month: 'long'})}</p>
+                                            <p className="text-3xl font-bold text-green-600 dark:text-green-400">${calcularGanancia(fechaEspecifica).toLocaleString('es-AR')}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="bg-muted/50 p-4 rounded-lg w-full text-center"><p className="text-sm text-muted-foreground">Seleccioná una fecha</p></div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <Label htmlFor="semanaEspecifica" className="text-sm font-medium mb-2 block">Por Semana</Label>
+                            <Input id="semanaEspecifica" type="week" value={semanaEspecifica} onChange={(e) => setSemanaEspecifica(e.target.value)} className="w-full" />
+                        </div>
+                        <div className="flex items-center">
+                            {semanaEspecifica ? (
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border-2 border-blue-200 dark:border-blue-800 w-full">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-blue-100 dark:bg-blue-900/40 p-3 rounded-full">
+                                            <Calendar className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">Semana {semanaEspecifica.split('-W')[1]}</p>
+                                            <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                                                ${(() => {
+                                                    const [año, semana] = semanaEspecifica.split('-W');
+                                                    const inicioSemana = new Date(parseInt(año), 0, 1 + (parseInt(semana) - 1) * 7);
+                                                    const diaSemana = inicioSemana.getDay();
+                                                    inicioSemana.setDate(inicioSemana.getDate() - diaSemana);
+                                                    const finSemana = new Date(inicioSemana);
+                                                    finSemana.setDate(inicioSemana.getDate() + 6);
+                                                    return calcularGanancia(inicioSemana.toISOString().split('T')[0], finSemana.toISOString().split('T')[0]).toLocaleString('es-AR');
+                                                })()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="bg-muted/50 p-4 rounded-lg w-full text-center"><p className="text-sm text-muted-foreground">Seleccioná una semana</p></div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <Label htmlFor="mesEspecifico" className="text-sm font-medium mb-2 block">Por Mes</Label>
+                            <Input id="mesEspecifico" type="month" value={mesEspecifico} onChange={(e) => setMesEspecifico(e.target.value)} className="w-full" />
+                        </div>
+                        <div className="flex items-center">
+                            {mesEspecifico ? (
+                                <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border-2 border-purple-200 dark:border-purple-800 w-full">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-purple-100 dark:bg-purple-900/40 p-3 rounded-full">
+                                            <Calendar className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">{new Date(mesEspecifico + '-01').toLocaleDateString('es-AR', {month: 'long',year: 'numeric'})}</p>
+                                            <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                                                ${(() => {
+                                                    const [año, mes] = mesEspecifico.split('-');
+                                                    const inicioMes = new Date(parseInt(año), parseInt(mes) - 1, 1);
+                                                    const finMes = new Date(parseInt(año), parseInt(mes), 0);
+                                                    return calcularGanancia(inicioMes.toISOString().split('T')[0], finMes.toISOString().split('T')[0]).toLocaleString('es-AR');
+                                                })()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="bg-muted/50 p-4 rounded-lg w-full text-center"><p className="text-sm text-muted-foreground">Seleccioná un mes</p></div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </Card>
         </div>
     );
 }
