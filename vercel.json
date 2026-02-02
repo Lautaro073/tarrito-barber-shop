@@ -6,7 +6,7 @@
         },
         {
             "path": "/api/notificaciones/reporte-mensual",
-            "schedule": "0 2 2 * *"
+            "schedule": "0 3 2 * *"
         }
     ]
 }
