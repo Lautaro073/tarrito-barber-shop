@@ -28,7 +28,7 @@ async function generarYEnviarReporte(mes?: number, anio?: number) {
     // Obtener servicios para calcular precios
     const serviciosRef = collection(db, 'servicios');
     const serviciosSnapshot = await getDocs(serviciosRef);
-    const servicios = serviciosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const servicios = serviciosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
 
     // Calcular estadísticas
     const citasCompletadas = citas.filter((c: any) => c.estado === 'completado');
@@ -59,7 +59,7 @@ async function generarYEnviarReporte(mes?: number, anio?: number) {
       });
 
     // Crear HTML del email
-    const nombreMes = new Date(anio, mes - 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+    const nombreMes = new Date(anioReporte, mesReporte - 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
     const emailHtml = `
       <!DOCTYPE html>
       <html>
@@ -196,4 +196,11 @@ export async function POST(request: NextRequest) {
     const resultado = await generarYEnviarReporte(mes, anio);
 
     return NextResponse.json(resultado, { status: 200 });
+  } catch (error) {
+    console.error('Error en POST reporte-mensual:', error);
+    return NextResponse.json(
+      { error: 'Error al enviar el reporte mensual' },
+      { status: 500 }
+    );
+  }
 }
