@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Calendar } from 'lucide-react';
 
 interface Turno {
     id: string;
@@ -29,6 +32,7 @@ export default function EstadisticasAdmin() {
     const [turnos, setTurnos] = useState<Turno[]>([]);
     const [servicios, setServicios] = useState<Servicio[]>([]);
     const [cargando, setCargando] = useState(true);
+    const [fechaEspecifica, setFechaEspecifica] = useState('');
 
     useEffect(() => {
         cargarDatos();
@@ -52,6 +56,21 @@ export default function EstadisticasAdmin() {
         } finally {
             setCargando(false);
         }
+    };
+
+    const calcularGanancia = (fechaInicio: string, fechaFin?: string) => {
+        return turnos
+            .filter(t => {
+                const fechaTurno = t.fecha.split('T')[0];
+                if (fechaFin) {
+                    return fechaTurno >= fechaInicio && fechaTurno <= fechaFin && t.estado === 'completado';
+                }
+                return fechaTurno === fechaInicio && t.estado === 'completado';
+            })
+            .reduce((total, t) => {
+                const servicio = servicios.find(s => s.id === t.servicioId);
+                return total + (servicio?.precio || 0);
+            }, 0);
     };
 
     if (cargando) {
@@ -86,14 +105,61 @@ export default function EstadisticasAdmin() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-foreground">📊 Estadísticas y Ganancias</h1>
-                    <p className="text-muted-foreground mt-1">
-                        Visualizá el rendimiento de tu negocio
-                    </p>
-                </div>
+            <div>
+                <h1 className="text-3xl font-bold text-foreground">📊 Estadísticas y Ganancias</h1>
+                <p className="text-muted-foreground mt-1">
+                    Visualizá el rendimiento de tu negocio
+                </p>
             </div>
+
+            {/* Filtro por fecha específica */}
+            <Card className="p-6">
+                <h3 className="text-lg font-bold text-foreground mb-4">📅 Consultar Ganancia por Día</h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <Label htmlFor="fechaEspecifica" className="text-sm text-muted-foreground mb-2 block">
+                            Seleccioná una fecha
+                        </Label>
+                        <Input
+                            id="fechaEspecifica"
+                            type="date"
+                            value={fechaEspecifica}
+                            onChange={(e) => setFechaEspecifica(e.target.value)}
+                            className="w-full"
+                        />
+                    </div>
+                    <div className="flex items-center">
+                        {fechaEspecifica ? (
+                            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border-2 border-green-200 dark:border-green-800 w-full">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-green-100 dark:bg-green-900/40 p-3 rounded-full">
+                                        <Calendar className="h-6 w-6 text-green-600 dark:text-green-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">
+                                            {new Date(fechaEspecifica + 'T00:00:00').toLocaleDateString('es-AR', {
+                                                weekday: 'long',
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric'
+                                            })}
+                                        </p>
+                                        <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                                            ${calcularGanancia(fechaEspecifica).toLocaleString('es-AR')}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-muted/50 p-4 rounded-lg w-full text-center">
+                                <p className="text-sm text-muted-foreground">
+                                    Seleccioná una fecha para ver la ganancia del día
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </Card>
 
             {/* Ganancias */}
             <div className="grid md:grid-cols-3 gap-4">

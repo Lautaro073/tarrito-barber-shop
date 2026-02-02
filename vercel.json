@@ -1,8 +1,12 @@
 {
-  "crons": [
-    {
-      "path": "/api/notificaciones/resumen-diario",
-      "schedule": "0 9 * * *"
-    }
-  ]
+    "crons": [
+        {
+            "path": "/api/notificaciones/resumen-diario",
+            "schedule": "0 9 * * *"
+        },
+        {
+            "path": "/api/notificaciones/reporte-mensual",
+            "schedule": "0 2 2 * *"
+        }
+    ]
 }
