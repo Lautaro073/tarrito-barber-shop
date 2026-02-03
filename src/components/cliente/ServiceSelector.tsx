@@ -11,7 +11,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertCircle, CheckCircle2, Clock, XCircle } from 'lucide-react';
-import { toast } from 'sonner';
 import { es } from 'date-fns/locale';
 import { getServicios } from '@/lib/servicios-cache';
 
@@ -466,7 +465,7 @@ export default function ServiceSelector() {
                             <ul className="space-y-2 text-sm text-muted-foreground">
                                 <li className="flex items-start gap-2">
                                     <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-red-500" />
-                                    <span>Cancelaciones: Avisá con <strong>30 minutos de anticipación</strong></span>
+                                    <span>Cancelaciones: con <strong>2 horas de anticipación</strong></span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <Clock className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-500" />
