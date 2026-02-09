@@ -262,6 +262,42 @@ export default function ServiceSelector() {
         setFechasSinHorario([]);
     };
 
+    const handleMultipleTimeSelect = (fechas: Date[], hora: string) => {
+        const servicioSeleccionado = servicios.find(s => s.id === selectedService);
+        const duracion = servicioSeleccionado?.duracionMinutos || 40;
+        const horariosConsecutivos: string[] = [];
+        const [h, m] = hora.split(':').map(Number);
+        let tiempoActual = h * 60 + m;
+        for (let i = 0; i < cantidadPersonas; i++) {
+            const horas = Math.floor(tiempoActual / 60);
+            const minutos = tiempoActual % 60;
+            horariosConsecutivos.push(`${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`);
+            tiempoActual += duracion;
+        }
+
+        const newSelectedTimes = { ...selectedTimes };
+
+        // Verificar si todas las fechas tienen este horario seleccionado
+        const todasSeleccionadas = fechas.every(fecha => {
+            const fechaKey = fecha.toISOString().split('T')[0];
+            const horasActuales = newSelectedTimes[fechaKey] || [];
+            return horariosConsecutivos.every(h => horasActuales.includes(h));
+        });
+
+        // Seleccionar o deseleccionar para todas las fechas
+        fechas.forEach(fecha => {
+            const fechaKey = fecha.toISOString().split('T')[0];
+            if (todasSeleccionadas) {
+                newSelectedTimes[fechaKey] = [];
+            } else {
+                newSelectedTimes[fechaKey] = [...horariosConsecutivos];
+            }
+        });
+
+        setSelectedTimes(newSelectedTimes);
+        setFechasSinHorario([]);
+    };
+
     const getTotalTurnos = () => {
         return Object.values(selectedTimes).reduce((total, horas) => total + horas.length, 0);
     };
@@ -489,57 +525,98 @@ export default function ServiceSelector() {
                             )}
                             {selectedDates.length > 0 ? (
                                 <div className="space-y-4">
-                                    {selectedDates.map((fecha) => {
-                                        const fechaKey = fecha.toISOString().split('T')[0];
-                                        const horariosDisponibles = horariosDisponiblesPorFecha[fechaKey] || [];
+                                    {(() => {
+                                        // Agrupar fechas por día de la semana y horarios disponibles
+                                        const gruposPorDia: { [key: string]: { fechas: Date[], horarios: string[] } } = {};
+
+                                        selectedDates.forEach(fecha => {
+                                            const diaSemana = fecha.toLocaleDateString('es-AR', { weekday: 'long' });
+                                            const fechaKey = fecha.toISOString().split('T')[0];
+                                            const horariosDisponibles = horariosDisponiblesPorFecha[fechaKey] || [];
+
+                                            if (!gruposPorDia[diaSemana]) {
+                                                gruposPorDia[diaSemana] = { fechas: [], horarios: horariosDisponibles };
+                                            } else {
+                                                // Calcular intersección de horarios
+                                                gruposPorDia[diaSemana].horarios = gruposPorDia[diaSemana].horarios.filter(h =>
+                                                    horariosDisponibles.includes(h)
+                                                );
+                                            }
+                                            gruposPorDia[diaSemana].fechas.push(fecha);
+                                        });
+
                                         const servicioSeleccionado = servicios.find(s => s.id === selectedService);
                                         const duracion = servicioSeleccionado?.duracionMinutos || 40;
 
-                                        return (
-                                            <div key={fechaKey} className="border rounded-lg p-3 sm:p-4 bg-card">
-                                                <h4 className="font-semibold text-sm mb-3">
-                                                    {fecha.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}
-                                                </h4>
-                                                {horariosDisponibles.length > 0 ? (
-                                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2">
-                                                        {horariosDisponibles.map((hora) => {
-                                                            const horariosConsecutivos: string[] = [];
-                                                            const [h, m] = hora.split(':').map(Number);
-                                                            let tiempoActual = h * 60 + m;
-                                                            for (let i = 0; i < cantidadPersonas; i++) {
-                                                                const horas = Math.floor(tiempoActual / 60);
-                                                                const minutos = tiempoActual % 60;
-                                                                horariosConsecutivos.push(`${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`);
-                                                                tiempoActual += duracion;
-                                                            }
-                                                            const horasSeleccionadas = selectedTimes[fechaKey] || [];
-                                                            const estaSeleccionado = horariosConsecutivos.every(h => horasSeleccionadas.includes(h));
-                                                            const ultimoHorario = horariosConsecutivos[horariosConsecutivos.length - 1];
+                                        return Object.entries(gruposPorDia).map(([diaSemana, { fechas, horarios }]) => {
+                                            const esMismoDia = fechas.length > 1;
+                                            const primerFecha = fechas[0];
 
-                                                            return (
-                                                                <Button
-                                                                    key={hora}
-                                                                    type="button"
-                                                                    variant={estaSeleccionado ? 'default' : 'outline'}
-                                                                    className={cantidadPersonas > 1 ? "w-full text-[10px] sm:text-xs py-3 sm:py-4 col-span-2" : "w-full text-xs sm:text-sm py-2"}
-                                                                    onClick={() => handleTimeSelect(fecha, hora)}
-                                                                >
-                                                                    {cantidadPersonas > 1 ? (
-                                                                        <span className="flex flex-col items-center leading-tight">
-                                                                            <span className="font-semibold">{hora} - {ultimoHorario}</span>
-                                                                            <span className="text-[9px] sm:text-[10px] opacity-70">({cantidadPersonas}p)</span>
-                                                                        </span>
-                                                                    ) : hora}
-                                                                </Button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-xs text-muted-foreground">No hay horarios disponibles</p>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
+                                            return (
+                                                <div key={diaSemana} className="border rounded-lg p-3 sm:p-4 bg-card">
+                                                    <h4 className="font-semibold text-sm mb-3">
+                                                        {esMismoDia
+                                                            ? `${diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1)} (${fechas.length} fechas)`
+                                                            : primerFecha.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })
+                                                        }
+                                                    </h4>
+                                                    {esMismoDia && (
+                                                        <p className="text-xs text-muted-foreground mb-2">
+                                                            {fechas.map(f => f.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })).join(', ')}
+                                                        </p>
+                                                    )}
+                                                    {horarios.length > 0 ? (
+                                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2">
+                                                            {horarios.map((hora) => {
+                                                                const horariosConsecutivos: string[] = [];
+                                                                const [h, m] = hora.split(':').map(Number);
+                                                                let tiempoActual = h * 60 + m;
+                                                                for (let i = 0; i < cantidadPersonas; i++) {
+                                                                    const horas = Math.floor(tiempoActual / 60);
+                                                                    const minutos = tiempoActual % 60;
+                                                                    horariosConsecutivos.push(`${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`);
+                                                                    tiempoActual += duracion;
+                                                                }
+
+                                                                // Verificar si está seleccionado en todas las fechas del grupo
+                                                                const todasSeleccionadas = fechas.every(fecha => {
+                                                                    const fechaKey = fecha.toISOString().split('T')[0];
+                                                                    const horasSeleccionadas = selectedTimes[fechaKey] || [];
+                                                                    return horariosConsecutivos.every(h => horasSeleccionadas.includes(h));
+                                                                });
+                                                                const ultimoHorario = horariosConsecutivos[horariosConsecutivos.length - 1];
+
+                                                                return (
+                                                                    <Button
+                                                                        key={hora}
+                                                                        type="button"
+                                                                        variant={todasSeleccionadas ? 'default' : 'outline'}
+                                                                        className={cantidadPersonas > 1 ? "w-full text-[10px] sm:text-xs py-3 sm:py-4 col-span-2" : "w-full text-xs sm:text-sm py-2"}
+                                                                        onClick={() => {
+                                                                            if (fechas.length > 1) {
+                                                                                handleMultipleTimeSelect(fechas, hora);
+                                                                            } else {
+                                                                                handleTimeSelect(fechas[0], hora);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        {cantidadPersonas > 1 ? (
+                                                                            <span className="flex flex-col items-center leading-tight">
+                                                                                <span className="font-semibold">{hora} - {ultimoHorario}</span>
+                                                                                <span className="text-[9px] sm:text-[10px] opacity-70">({cantidadPersonas}p)</span>
+                                                                            </span>
+                                                                        ) : hora}
+                                                                    </Button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-xs text-muted-foreground">No hay horarios disponibles en común</p>
+                                                    )}
+                                                </div>
+                                            );
+                                        });
+                                    })()}
                                     {getTotalTurnos() > 0 && (
                                         <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                                             <p className="text-sm font-medium text-green-800 dark:text-green-200">
