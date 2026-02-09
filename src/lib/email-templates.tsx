@@ -1,32 +1,45 @@
 interface NuevoTurnoEmailProps {
-    nombreCliente: string;
-    telefono: string;
-    email?: string;
-    servicio: string;
-    fecha: string;
-    hora: string;
+  nombreCliente: string;
+  telefono: string;
+  email?: string;
+  servicio: string;
+  fecha: string;
+  hora: string;
+  cantidadPersonas: number;
 }
 
 interface TurnoCanceladoEmailProps {
-    nombreCliente: string;
-    telefono: string;
-    servicio: string;
-    fecha: string;
-    hora: string;
+  nombreCliente: string;
+  telefono: string;
+  servicio: string;
+  fecha: string;
+  hora: string;
 }
 
 interface ResumenDiarioEmailProps {
-    fecha: string;
-    turnos: Array<{
-        hora: string;
-        servicio: string;
-        nombreCliente: string;
-        telefono: string;
-        estado: string;
-    }>;
+  fecha: string;
+  turnos: Array<{
+    hora: string;
+    servicio: string;
+    nombreCliente: string;
+    telefono: string;
+    estado: string;
+  }>;
 }
 
-export const nuevoTurnoEmail = ({ nombreCliente, telefono, email, servicio, fecha, hora }: NuevoTurnoEmailProps) => `
+interface MultipleTurnosEmailProps {
+  nombreCliente: string;
+  telefono: string;
+  email?: string;
+  cantidadPersonas: number;
+  turnos: Array<{
+    servicio: string;
+    fecha: string;
+    hora: string;
+  }>;
+}
+
+export const nuevoTurnoEmail = ({ nombreCliente, telefono, email, servicio, fecha, hora, cantidadPersonas }: NuevoTurnoEmailProps) => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -74,10 +87,10 @@ export const nuevoTurnoEmail = ({ nombreCliente, telefono, email, servicio, fech
         <div class="info-row">
           <span class="info-label">📅 Fecha:</span>
           <span class="info-value">${new Date(fecha).toLocaleDateString('es-AR', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric'
 })}</span>
         </div>
         <div class="info-row" style="border-bottom: none;">
@@ -143,10 +156,10 @@ export const turnoCanceladoEmail = ({ nombreCliente, telefono, servicio, fecha, 
         <div class="info-row">
           <span class="info-label">📅 Fecha:</span>
           <span class="info-value">${new Date(fecha).toLocaleDateString('es-AR', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric'
 })}</span>
         </div>
         <div class="info-row" style="border-bottom: none;">
@@ -196,10 +209,10 @@ export const resumenDiarioEmail = ({ fecha, turnos }: ResumenDiarioEmailProps) =
     <div class="content">
       <div class="summary">
         <h2 style="margin: 0; color: #667eea;">${new Date(fecha).toLocaleDateString('es-AR', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric'
 })}</h2>
         <p style="margin: 10px 0 0 0; color: #777;">Total de turnos: <strong>${turnos.length}</strong></p>
       </div>
@@ -232,6 +245,102 @@ export const resumenDiarioEmail = ({ fecha, turnos }: ResumenDiarioEmailProps) =
         </p>
       ` : ''}
     </div>
+    
+    <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+      <p style="color: #999; font-size: 12px; margin: 5px 0;">Este es un email automático de Tarrito Barber Shop</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+export const multipleTurnosEmail = ({ nombreCliente, telefono, email, turnos, cantidadPersonas }: MultipleTurnosEmailProps) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; }
+    .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+    .header h1 { margin: 0; font-size: 28px; }
+    .header p { margin: 10px 0 0 0; opacity: 0.9; }
+    .content { padding: 30px; }
+    .cliente-info { background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
+    .info-row { padding: 8px 0; display: flex; justify-content: space-between; border-bottom: 1px solid #eee; }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { font-weight: bold; color: #555; }
+    .info-value { color: #333; }
+    .turnos-list { margin: 20px 0; }
+    .turno-item { background: white; border: 2px solid #667eea; border-radius: 8px; padding: 15px; margin: 10px 0; }
+    .turno-item h3 { margin: 0 0 10px 0; color: #667eea; font-size: 18px; }
+    .turno-detail { padding: 5px 0; color: #555; }
+    .badge { display: inline-block; background: #667eea; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-bottom: 10px; }
+    .footer { text-align: center; padding: 20px; border-top: 1px solid #eee; color: #777; font-size: 12px; }
+    .whatsapp-btn { display: inline-block; background: #25D366; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; margin-top: 20px; font-weight: bold; }
+    .whatsapp-btn:hover { background: #20BA5A; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>💈 ${turnos.length} Nuevos Turnos Reservados</h1>
+      <p>Tarrito Barber Shop</p>
+    </div>
+    
+    <div class="content">
+      <p>¡Hola! Un cliente ha reservado <strong>${turnos.length} turnos</strong>:</p>
+      
+      <div class="cliente-info">
+        <div class="info-row">
+          <span class="info-label">👤 Cliente:</span>
+          <span class="info-value">${nombreCliente}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">📞 Teléfono:</span>
+          <span class="info-value">${telefono}</span>
+        </div>
+        ${email ? `
+        <div class="info-row">
+          <span class="info-label">📧 Email:</span>
+          <span class="info-value">${email}</span>
+        </div>
+        ` : ''}
+        <div class="info-row">
+          <span class="info-label">👥 Cantidad:</span>
+          <span class="info-value">${cantidadPersonas} persona${cantidadPersonas > 1 ? 's' : ''}</span>
+        </div>
+      </div>
+
+      <h2 style="color: #667eea; margin-top: 30px;">📋 Turnos Reservados:</h2>
+      
+      <div class="turnos-list">
+        ${turnos.map((turno, index) => `
+          <div class="turno-item">
+            <span class="badge">Turno ${index + 1}</span>
+            <h3>${turno.servicio}</h3>
+            <div class="turno-detail">
+              📅 <strong>Fecha:</strong> ${new Date(turno.fecha).toLocaleDateString('es-AR', {
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric'
+})}
+            </div>
+            <div class="turno-detail">
+              🕐 <strong>Hora:</strong> ${turno.hora} hs
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      
+      <div style="text-align: center;">
+        <a href="https://wa.me/${telefono.replace(/\D/g, '')}" class="whatsapp-btn">
+          💬 Contactar por WhatsApp
+        </a>
+      </div>
+    </div>
+    
     <div class="footer">
       <p>Este es un email automático de Tarrito Barber Shop</p>
     </div>

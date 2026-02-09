@@ -7,7 +7,7 @@ import { nuevoTurnoEmail } from '@/lib/email-templates';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { servicioId, fecha, hora, nombre, telefono, email } = body;
+    const { servicioId, fecha, hora, nombre, telefono, email, cantidadPersonas } = body;
 
     // Validación básica
     if (!servicioId || !fecha || !hora || !nombre || !telefono) {
@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
       nombre,
       telefono,
       email: email || null,
+      cantidadPersonas: cantidadPersonas || 1,
       estado: 'pendiente',
       createdAt: serverTimestamp(),
     });
@@ -69,6 +70,7 @@ export async function POST(request: NextRequest) {
         email,
         servicio: servicioNombre,
         fecha,
+        cantidadPersonas: cantidadPersonas || 1,
         hora,
       });
 
