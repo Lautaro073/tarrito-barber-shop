@@ -189,7 +189,7 @@ export default function ServiceSelector() {
         if (!fechaActiva || selectedDates.length === 0) return;
         const servicioSeleccionado = servicios.find(s => s.id === selectedService);
         const duracion = servicioSeleccionado?.duracionMinutos || 40;
-        const horariosConsecutivos = [];
+        const horariosConsecutivos: string[] = [];
         const [h, m] = hora.split(':').map(Number);
         let tiempoActual = h * 60 + m;
         for (let i = 0; i < cantidadPersonas; i++) {
@@ -442,7 +442,7 @@ export default function ServiceSelector() {
                                         {horariosDisponibles.map((hora) => {
                                             const servicioSeleccionado = servicios.find(s => s.id === selectedService);
                                             const duracion = servicioSeleccionado?.duracionMinutos || 40;
-                                            const horariosConsecutivos = [];
+                                            const horariosConsecutivos: string[] = [];
                                             const [h, m] = hora.split(':').map(Number);
                                             let tiempoActual = h * 60 + m;
                                             for (let i = 0; i < cantidadPersonas; i++) {
