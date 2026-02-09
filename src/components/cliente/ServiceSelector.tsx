@@ -50,9 +50,10 @@ export default function ServiceSelector() {
     const [nombre, setNombre] = useState('');
     const [telefono, setTelefono] = useState('');
     const [cantidadPersonas, setCantidadPersonas] = useState(1);
-    const [horariosDisponibles, setHorariosDisponibles] = useState<string[]>([]);
+    const [horariosDisponiblesPorFecha, setHorariosDisponiblesPorFecha] = useState<{ [key: string]: string[] }>({});
     const [configuracionHorarios, setConfiguracionHorarios] = useState<any>(null);
     const [mostrarAlerta, setMostrarAlerta] = useState(false);
+    const [fechasSinHorario, setFechasSinHorario] = useState<Date[]>([]);
     const [mostrarDialogoConfirmacion, setMostrarDialogoConfirmacion] = useState(false);
     const [mostrarDialogoExito, setMostrarDialogoExito] = useState(false);
     const [mostrarDialogoError, setMostrarDialogoError] = useState(false);
@@ -91,102 +92,147 @@ export default function ServiceSelector() {
         setSelectedTimes({});
     }, [cantidadPersonas]);
 
+    const verificarHorariosDisponibles = async (fecha: Date): Promise<string[]> => {
+        if (!configuracionHorarios) return [];
+
+        const diaSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][fecha.getDay()];
+        const configDia = configuracionHorarios.find((d: any) => d.dia === diaSemana);
+
+        if (!configDia || !configDia.activo) return [];
+
+        const servicioSeleccionado = servicios.find(s => s.id === selectedService);
+        const duracion = servicioSeleccionado?.duracionMinutos || 40;
+        let horariosGenerados: string[] = [];
+
+        if (configDia.franjas && Array.isArray(configDia.franjas)) {
+            configDia.franjas.forEach((franja: any) => {
+                const horariosFramja = generarHorarios(franja.horaInicio, franja.horaFin, duracion);
+                horariosGenerados = [...horariosGenerados, ...horariosFramja];
+            });
+        } else {
+            horariosGenerados = generarHorarios(configDia.horaInicio, configDia.horaFin, duracion);
+        }
+
+        try {
+            const fechaStr = fecha.toISOString().split('T')[0];
+            const response = await fetch(`/api/citas?fecha=${fechaStr}`);
+            const data = await response.json();
+            const horariosOcupados = data.citas?.map((cita: any) => cita.hora) || [];
+            let horariosLibres = horariosGenerados.filter(h => !horariosOcupados.includes(h));
+
+            const hoy = new Date();
+            const esHoy = fecha.toDateString() === hoy.toDateString();
+            if (esHoy) {
+                const horaActual = hoy.getHours();
+                const minutosActuales = hoy.getMinutes();
+                const tiempoActualEnMinutos = horaActual * 60 + minutosActuales;
+                horariosLibres = horariosLibres.filter(horario => {
+                    const [hora, minutos] = horario.split(':').map(Number);
+                    const tiempoHorarioEnMinutos = hora * 60 + minutos;
+                    return tiempoHorarioEnMinutos > tiempoActualEnMinutos + 30;
+                });
+            }
+
+            if (cantidadPersonas > 1) {
+                horariosLibres = horariosLibres.filter(horario => {
+                    const [hora, minutos] = horario.split(':').map(Number);
+                    let tiempoInicial = hora * 60 + minutos;
+                    for (let i = 0; i < cantidadPersonas; i++) {
+                        const horas = Math.floor(tiempoInicial / 60);
+                        const mins = tiempoInicial % 60;
+                        const horarioConsecutivo = `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+                        if (!horariosLibres.includes(horarioConsecutivo)) {
+                            return false;
+                        }
+                        tiempoInicial += duracion;
+                    }
+                    return true;
+                });
+            }
+
+            return horariosLibres;
+        } catch (error) {
+            console.error('Error al cargar citas:', error);
+            return horariosGenerados;
+        }
+    };
+
     useEffect(() => {
         const cargarHorariosDisponibles = async () => {
-            if (!fechaActiva || !configuracionHorarios) {
-                setHorariosDisponibles([]);
+            if (selectedDates.length === 0 || !configuracionHorarios) {
+                setHorariosDisponiblesPorFecha({});
                 setMostrarAlerta(false);
                 return;
             }
 
-            const diaSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][fechaActiva.getDay()];
-            const configDia = configuracionHorarios.find((d: any) => d.dia === diaSemana);
+            // Cargar horarios para cada fecha seleccionada
+            const horariosPorFecha: { [key: string]: string[] } = {};
 
-            if (configDia && configDia.activo) {
-                const servicioSeleccionado = servicios.find(s => s.id === selectedService);
-                const duracion = servicioSeleccionado?.duracionMinutos || 40;
-                let horariosGenerados: string[] = [];
-                if (configDia.franjas && Array.isArray(configDia.franjas)) {
-                    configDia.franjas.forEach((franja: any) => {
-                        const horariosFramja = generarHorarios(franja.horaInicio, franja.horaFin, duracion);
-                        horariosGenerados = [...horariosGenerados, ...horariosFramja];
-                    });
-                } else {
-                    horariosGenerados = generarHorarios(configDia.horaInicio, configDia.horaFin, duracion);
-                }
-
-                try {
-                    const fechaStr = fechaActiva.toISOString().split('T')[0];
-                    const response = await fetch(`/api/citas?fecha=${fechaStr}`);
-                    const data = await response.json();
-                    const horariosOcupados = data.citas?.map((cita: any) => cita.hora) || [];
-                    let horariosLibres = horariosGenerados.filter(h => !horariosOcupados.includes(h));
-                    const hoy = new Date();
-                    const esHoy = fechaActiva.toDateString() === hoy.toDateString();
-                    if (esHoy) {
-                        const horaActual = hoy.getHours();
-                        const minutosActuales = hoy.getMinutes();
-                        const tiempoActualEnMinutos = horaActual * 60 + minutosActuales;
-                        horariosLibres = horariosLibres.filter(horario => {
-                            const [hora, minutos] = horario.split(':').map(Number);
-                            const tiempoHorarioEnMinutos = hora * 60 + minutos;
-                            return tiempoHorarioEnMinutos > tiempoActualEnMinutos + 30;
-                        });
-                    }
-
-                    if (cantidadPersonas > 1) {
-                        horariosLibres = horariosLibres.filter(horario => {
-                            const [hora, minutos] = horario.split(':').map(Number);
-                            let tiempoInicial = hora * 60 + minutos;
-                            for (let i = 0; i < cantidadPersonas; i++) {
-                                const horas = Math.floor(tiempoInicial / 60);
-                                const mins = tiempoInicial % 60;
-                                const horarioConsecutivo = `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-                                if (!horariosLibres.includes(horarioConsecutivo)) {
-                                    return false;
-                                }
-                                tiempoInicial += duracion;
-                            }
-                            return true;
-                        });
-                    }
-
-                    setHorariosDisponibles(horariosLibres);
-                    if (horariosLibres.length === 0 && horariosGenerados.length > 0) {
-                        setMostrarAlerta(true);
-                    } else {
-                        setMostrarAlerta(false);
-                    }
-                } catch (error) {
-                    console.error('Error al cargar citas:', error);
-                    setHorariosDisponibles(horariosGenerados);
-                    setMostrarAlerta(false);
-                }
-            } else {
-                setHorariosDisponibles([]);
-                if (fechaActiva) {
-                    setMostrarAlerta(true);
-                } else {
-                    setMostrarAlerta(false);
-                }
+            for (const fecha of selectedDates) {
+                const fechaKey = fecha.toISOString().split('T')[0];
+                const horariosDeEstaFecha = await verificarHorariosDisponibles(fecha);
+                horariosPorFecha[fechaKey] = horariosDeEstaFecha;
             }
+
+            setHorariosDisponiblesPorFecha(horariosPorFecha);
+
+            const hayAlgunHorario = Object.values(horariosPorFecha).some(h => h.length > 0);
+            setMostrarAlerta(!hayAlgunHorario);
         };
         cargarHorariosDisponibles();
-    }, [fechaActiva, configuracionHorarios, selectedService, cantidadPersonas, servicios]);
+    }, [selectedDates, configuracionHorarios, selectedService, cantidadPersonas, servicios]);
 
-    const handleDateSelect = (dates: Date[] | undefined) => {
+    const handleDateSelect = async (dates: Date[] | undefined) => {
         if (!dates || dates.length === 0) {
             setSelectedDates([]);
             setFechaActiva(null);
             setSelectedTimes({});
+            setFechasSinHorario([]);
             return;
         }
+
+        // Limpiar horarios de fechas que fueron deseleccionadas
+        const newSelectedTimes = { ...selectedTimes };
+        const fechasKeys = dates.map(d => d.toISOString().split('T')[0]);
+
+        // Encontrar horarios que están seleccionados actualmente
+        const horariosExistentes = Object.values(newSelectedTimes).find(horas => horas.length > 0);
+
+        // Eliminar horarios de fechas que ya no están seleccionadas
+        Object.keys(newSelectedTimes).forEach(fechaKey => {
+            if (!fechasKeys.includes(fechaKey)) {
+                delete newSelectedTimes[fechaKey];
+            }
+        });
+
+        // Si hay horarios seleccionados, verificar disponibilidad en nuevas fechas
+        const fechasNoDisponibles: Date[] = [];
+        if (horariosExistentes && horariosExistentes.length > 0) {
+            for (const fechaKey of fechasKeys) {
+                if (!newSelectedTimes[fechaKey]) {
+                    // Nueva fecha, verificar si el horario está disponible
+                    const fecha = new Date(fechaKey + 'T00:00:00');
+                    const disponibles = await verificarHorariosDisponibles(fecha);
+
+                    // Verificar si todos los horarios consecutivos están disponibles
+                    const todosDisponibles = horariosExistentes.every(h => disponibles.includes(h));
+
+                    if (todosDisponibles) {
+                        newSelectedTimes[fechaKey] = [...horariosExistentes];
+                    } else {
+                        fechasNoDisponibles.push(fecha);
+                    }
+                }
+            }
+        }
+
+        setFechasSinHorario(fechasNoDisponibles);
+        setSelectedTimes(newSelectedTimes);
         setSelectedDates(dates);
         setFechaActiva(dates[dates.length - 1]);
     };
 
-    const handleTimeSelect = (hora: string) => {
-        if (!fechaActiva || selectedDates.length === 0) return;
+    const handleTimeSelect = async (fecha: Date, hora: string) => {
         const servicioSeleccionado = servicios.find(s => s.id === selectedService);
         const duracion = servicioSeleccionado?.duracionMinutos || 40;
         const horariosConsecutivos: string[] = [];
@@ -198,25 +244,22 @@ export default function ServiceSelector() {
             horariosConsecutivos.push(`${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`);
             tiempoActual += duracion;
         }
-        const newSelectedTimes = { ...selectedTimes };
-        const todosSeleccionados = selectedDates.every(date => {
-            const fechaKey = date.toISOString().split('T')[0];
-            const horas = newSelectedTimes[fechaKey] || [];
-            return horariosConsecutivos.every(h => horas.includes(h));
-        });
 
-        // Lógica: 1 horario por fecha. Si ya está seleccionado, deseleccionar. Si no, reemplazar.
-        for (const date of selectedDates) {
-            const fechaKey = date.toISOString().split('T')[0];
-            if (todosSeleccionados) {
-                // Deseleccionar
-                newSelectedTimes[fechaKey] = [];
-            } else {
-                // Reemplazar cualquier selección anterior con la nueva
-                newSelectedTimes[fechaKey] = [...horariosConsecutivos];
-            }
+        const newSelectedTimes = { ...selectedTimes };
+        const fechaKey = fecha.toISOString().split('T')[0];
+        const horasActuales = newSelectedTimes[fechaKey] || [];
+        const estaSeleccionado = horariosConsecutivos.every(h => horasActuales.includes(h));
+
+        if (estaSeleccionado) {
+            // Deseleccionar
+            newSelectedTimes[fechaKey] = [];
+        } else {
+            // Seleccionar
+            newSelectedTimes[fechaKey] = [...horariosConsecutivos];
         }
+
         setSelectedTimes(newSelectedTimes);
+        setFechasSinHorario([]);
     };
 
     const getTotalTurnos = () => {
@@ -418,7 +461,7 @@ export default function ServiceSelector() {
                         </div>
                         <div>
                             <Label className="mb-2 block">
-                                Horarios disponibles {fechaActiva && `- ${fechaActiva.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}`}
+                                Horarios disponibles
                             </Label>
                             {cantidadPersonas > 1 && (
                                 <Alert className="mb-3 sm:mb-4 py-2 sm:py-3">
@@ -428,53 +471,75 @@ export default function ServiceSelector() {
                                     </AlertDescription>
                                 </Alert>
                             )}
-                            {mostrarAlerta && (
-                                <Alert variant="destructive" className="mb-4">
-                                    <AlertCircle className="h-4 w-4" />
-                                    <AlertDescription>
-                                        Lo sentimos, no hay turnos disponibles para este día. Por favor seleccioná otra fecha.
+                            {fechasSinHorario.length > 0 && (
+                                <Alert className="mb-3 sm:mb-4 py-2 sm:py-3 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800">
+                                    <AlertCircle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                                    <AlertDescription className="text-xs sm:text-sm text-orange-800 dark:text-orange-200">
+                                        ⚠️ El horario no está disponible para: {fechasSinHorario.map(f => f.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })).join(', ')}
                                     </AlertDescription>
                                 </Alert>
                             )}
-                            {horariosDisponibles.length > 0 && fechaActiva ? (
-                                <>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2">
-                                        {horariosDisponibles.map((hora) => {
-                                            const servicioSeleccionado = servicios.find(s => s.id === selectedService);
-                                            const duracion = servicioSeleccionado?.duracionMinutos || 40;
-                                            const horariosConsecutivos: string[] = [];
-                                            const [h, m] = hora.split(':').map(Number);
-                                            let tiempoActual = h * 60 + m;
-                                            for (let i = 0; i < cantidadPersonas; i++) {
-                                                const horas = Math.floor(tiempoActual / 60);
-                                                const minutos = tiempoActual % 60;
-                                                horariosConsecutivos.push(`${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`);
-                                                tiempoActual += duracion;
-                                            }
-                                            const todosSeleccionados = selectedDates.every(date => {
-                                                const fechaKey = date.toISOString().split('T')[0];
-                                                const horas = selectedTimes[fechaKey] || [];
-                                                return horariosConsecutivos.every(h => horas.includes(h));
-                                            });
-                                            const ultimoHorario = horariosConsecutivos[horariosConsecutivos.length - 1];
-                                            return (
-                                                <Button
-                                                    key={hora}
-                                                    type="button"
-                                                    variant={todosSeleccionados ? 'default' : 'outline'}
-                                                    className={cantidadPersonas > 1 ? "w-full text-[10px] sm:text-xs py-3 sm:py-4 col-span-2" : "w-full text-xs sm:text-sm py-2"}
-                                                    onClick={() => handleTimeSelect(hora)}
-                                                >
-                                                    {cantidadPersonas > 1 ? (
-                                                        <span className="flex flex-col items-center leading-tight">
-                                                            <span className="font-semibold">{hora} - {ultimoHorario}</span>
-                                                            <span className="text-[9px] sm:text-[10px] opacity-70">({cantidadPersonas} personas)</span>
-                                                        </span>
-                                                    ) : hora}
-                                                </Button>
-                                            );
-                                        })}
-                                    </div>
+                            {mostrarAlerta && (
+                                <Alert variant="destructive" className="mb-4">
+                                    <AlertCircle className="h-4" />
+                                    <AlertDescription>
+                                        Lo sentimos, no hay turnos disponibles. Por favor seleccioná otra fecha.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                            {selectedDates.length > 0 ? (
+                                <div className="space-y-4">
+                                    {selectedDates.map((fecha) => {
+                                        const fechaKey = fecha.toISOString().split('T')[0];
+                                        const horariosDisponibles = horariosDisponiblesPorFecha[fechaKey] || [];
+                                        const servicioSeleccionado = servicios.find(s => s.id === selectedService);
+                                        const duracion = servicioSeleccionado?.duracionMinutos || 40;
+
+                                        return (
+                                            <div key={fechaKey} className="border rounded-lg p-3 sm:p-4 bg-card">
+                                                <h4 className="font-semibold text-sm mb-3">
+                                                    {fecha.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                                </h4>
+                                                {horariosDisponibles.length > 0 ? (
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2">
+                                                        {horariosDisponibles.map((hora) => {
+                                                            const horariosConsecutivos: string[] = [];
+                                                            const [h, m] = hora.split(':').map(Number);
+                                                            let tiempoActual = h * 60 + m;
+                                                            for (let i = 0; i < cantidadPersonas; i++) {
+                                                                const horas = Math.floor(tiempoActual / 60);
+                                                                const minutos = tiempoActual % 60;
+                                                                horariosConsecutivos.push(`${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`);
+                                                                tiempoActual += duracion;
+                                                            }
+                                                            const horasSeleccionadas = selectedTimes[fechaKey] || [];
+                                                            const estaSeleccionado = horariosConsecutivos.every(h => horasSeleccionadas.includes(h));
+                                                            const ultimoHorario = horariosConsecutivos[horariosConsecutivos.length - 1];
+
+                                                            return (
+                                                                <Button
+                                                                    key={hora}
+                                                                    type="button"
+                                                                    variant={estaSeleccionado ? 'default' : 'outline'}
+                                                                    className={cantidadPersonas > 1 ? "w-full text-[10px] sm:text-xs py-3 sm:py-4 col-span-2" : "w-full text-xs sm:text-sm py-2"}
+                                                                    onClick={() => handleTimeSelect(fecha, hora)}
+                                                                >
+                                                                    {cantidadPersonas > 1 ? (
+                                                                        <span className="flex flex-col items-center leading-tight">
+                                                                            <span className="font-semibold">{hora} - {ultimoHorario}</span>
+                                                                            <span className="text-[9px] sm:text-[10px] opacity-70">({cantidadPersonas}p)</span>
+                                                                        </span>
+                                                                    ) : hora}
+                                                                </Button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-muted-foreground">No hay horarios disponibles</p>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                     {getTotalTurnos() > 0 && (
                                         <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                                             <p className="text-sm font-medium text-green-800 dark:text-green-200">
@@ -482,13 +547,11 @@ export default function ServiceSelector() {
                                             </p>
                                         </div>
                                     )}
-                                </>
+                                </div>
                             ) : (
-                                !mostrarAlerta && (
-                                    <p className="text-sm text-muted-foreground p-4 border rounded-md">
-                                        {selectedDates.length > 0 ? 'Cargando horarios...' : 'Seleccioná al menos una fecha primero'}
-                                    </p>
-                                )
+                                <p className="text-sm text-muted-foreground p-4 border rounded-md">
+                                    Seleccioná al menos una fecha primero
+                                </p>
                             )}
                         </div>
                     </div>
