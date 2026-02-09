@@ -33,7 +33,8 @@ const generarHorarios = (horaInicio: string, horaFin: string, duracionMinutos: n
     let minutoActual = horaIni * 60 + minIni;
     const minutoFin = horaFinal * 60 + minFinal;
 
-    while (minutoActual + duracionMinutos <= minutoFin) {
+    // Permitir turnos que excedan hasta 30 min la hora de cierre
+    while (minutoActual + duracionMinutos <= minutoFin + 30) {
         const horas = Math.floor(minutoActual / 60);
         const minutos = minutoActual % 60;
         horarios.push(`${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`);
@@ -351,7 +352,63 @@ export default function ServiceSelector() {
                                 disabled={(date) => {
                                     const today = new Date();
                                     today.setHours(0, 0, 0, 0);
-                                    return date < today || date.getDay() === 0;
+
+                                    // Deshabilitar fechas pasadas
+                                    if (date < today) return true;
+
+                                    // Deshabilitar domingos
+                                    if (date.getDay() === 0) return true;
+
+                                    // Lógica de habilitación semanal
+                                    const diaSemana = date.getDay(); // 0=domingo, 1=lunes, ..., 6=sábado
+                                    const ahora = new Date();
+                                    const horaActual = ahora.getHours();
+                                    const diaActual = ahora.getDay();
+
+                                    // Calcular inicio de semana actual (lunes)
+                                    const inicioSemanaActual = new Date(today);
+                                    const diasDesdeInicio = today.getDay() === 0 ? 6 : today.getDay() - 1;
+                                    inicioSemanaActual.setDate(today.getDate() - diasDesdeInicio);
+
+                                    // Calcular fin de semana actual (domingo)
+                                    const finSemanaActual = new Date(inicioSemanaActual);
+                                    finSemanaActual.setDate(inicioSemanaActual.getDate() + 6);
+
+                                    // Calcular inicio de próxima semana
+                                    const inicioProximaSemana = new Date(finSemanaActual);
+                                    inicioProximaSemana.setDate(finSemanaActual.getDate() + 1);
+
+                                    // Calcular fin de próxima semana
+                                    const finProximaSemana = new Date(inicioProximaSemana);
+                                    finProximaSemana.setDate(inicioProximaSemana.getDate() + 6);
+
+                                    // Viernes (5) y Sábado (6): siempre habilitados (sin restricción)
+                                    if (diaSemana === 5 || diaSemana === 6) {
+                                        return false;
+                                    }
+
+                                    // Lunes a Jueves (1-4): solo semana actual
+                                    if (diaSemana >= 1 && diaSemana <= 4) {
+                                        // Verificar si es domingo >= 16:00 para habilitar próxima semana
+                                        const esPostDomingo16 = diaActual === 0 && horaActual >= 16;
+
+                                        if (esPostDomingo16) {
+                                            // Habilitar próxima semana (lunes a jueves)
+                                            if (date >= inicioProximaSemana && date <= finProximaSemana) {
+                                                return false;
+                                            }
+                                        }
+
+                                        // Habilitar semana actual
+                                        if (date >= inicioSemanaActual && date <= finSemanaActual) {
+                                            return false;
+                                        }
+
+                                        // Bloquear cualquier otra fecha
+                                        return true;
+                                    }
+
+                                    return false;
                                 }}
                                 locale={es}
                                 className="rounded-md border mx-auto md:mx-0"
@@ -465,7 +522,7 @@ export default function ServiceSelector() {
                             <ul className="space-y-2 text-sm text-muted-foreground">
                                 <li className="flex items-start gap-2">
                                     <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-red-500" />
-                                    <span>Cancelaciones: con <strong>2 horas de anticipación</strong></span>
+                                    <span>Cancelaciones: Avisá con <strong>30 minutos de anticipación</strong></span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <Clock className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-500" />
