@@ -667,12 +667,10 @@ export default function ServiceSelector() {
                                 <Input
                                     id="cantidadPersonas"
                                     type="number"
-                                    min="1"
-                                    max="10"
                                     value={cantidadPersonas}
                                     onChange={(e) => {
-                                        const valor = parseInt(e.target.value) || 1;
-                                        setCantidadPersonas(Math.max(1, Math.min(10, valor)));
+                                        const valor = parseInt(e.target.value);
+                                        setCantidadPersonas(valor);
                                     }}
                                     className="mt-1.5"
                                     required
