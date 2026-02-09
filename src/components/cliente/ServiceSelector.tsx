@@ -522,7 +522,7 @@ export default function ServiceSelector() {
                             <ul className="space-y-2 text-sm text-muted-foreground">
                                 <li className="flex items-start gap-2">
                                     <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-red-500" />
-                                    <span>Cancelaciones: Avisá con <strong>30 minutos de anticipación</strong></span>
+                                    <span>Cancelaciones: Con<strong>2 horas de anticipación</strong></span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <Clock className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-500" />
