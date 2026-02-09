@@ -468,7 +468,7 @@ export default function ServiceSelector() {
                                                     {cantidadPersonas > 1 ? (
                                                         <span className="flex flex-col items-center leading-tight">
                                                             <span className="font-semibold">{hora} - {ultimoHorario}</span>
-                                                            <span className="text-[9px] sm:text-[10px] opacity-70">({cantidadPersonas}p)</span>
+                                                            <span className="text-[9px] sm:text-[10px] opacity-70">({cantidadPersonas} personas)</span>
                                                         </span>
                                                     ) : hora}
                                                 </Button>
