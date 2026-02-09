@@ -49,7 +49,7 @@ export default function ServiceSelector() {
     const [fechaActiva, setFechaActiva] = useState<Date | null>(null);
     const [nombre, setNombre] = useState('');
     const [telefono, setTelefono] = useState('');
-    const [cantidadPersonas, setCantidadPersonas] = useState(1);
+    const [cantidadPersonas, setCantidadPersonas] = useState('1');
     const [horariosDisponiblesPorFecha, setHorariosDisponiblesPorFecha] = useState<{ [key: string]: string[] }>({});
     const [configuracionHorarios, setConfiguracionHorarios] = useState<any>(null);
     const [mostrarAlerta, setMostrarAlerta] = useState(false);
@@ -133,11 +133,11 @@ export default function ServiceSelector() {
                 });
             }
 
-            if (cantidadPersonas > 1) {
+            if (parseInt(cantidadPersonas || '1') > 1) {
                 horariosLibres = horariosLibres.filter(horario => {
                     const [hora, minutos] = horario.split(':').map(Number);
                     let tiempoInicial = hora * 60 + minutos;
-                    for (let i = 0; i < cantidadPersonas; i++) {
+                    for (let i = 0; i < parseInt(cantidadPersonas || '1'); i++) {
                         const horas = Math.floor(tiempoInicial / 60);
                         const mins = tiempoInicial % 60;
                         const horarioConsecutivo = `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
@@ -238,7 +238,7 @@ export default function ServiceSelector() {
         const horariosConsecutivos: string[] = [];
         const [h, m] = hora.split(':').map(Number);
         let tiempoActual = h * 60 + m;
-        for (let i = 0; i < cantidadPersonas; i++) {
+        for (let i = 0; i < parseInt(cantidadPersonas || '1'); i++) {
             const horas = Math.floor(tiempoActual / 60);
             const minutos = tiempoActual % 60;
             horariosConsecutivos.push(`${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`);
@@ -268,7 +268,7 @@ export default function ServiceSelector() {
         const horariosConsecutivos: string[] = [];
         const [h, m] = hora.split(':').map(Number);
         let tiempoActual = h * 60 + m;
-        for (let i = 0; i < cantidadPersonas; i++) {
+        for (let i = 0; i < parseInt(cantidadPersonas || '1'); i++) {
             const horas = Math.floor(tiempoActual / 60);
             const minutos = tiempoActual % 60;
             horariosConsecutivos.push(`${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`);
@@ -320,7 +320,7 @@ export default function ServiceSelector() {
                         hora,
                         nombre,
                         telefono,
-                        cantidadPersonas: cantidadPersonas
+                        cantidadPersonas: parseInt(cantidadPersonas || '1')
                     });
                 }
             }
@@ -328,7 +328,7 @@ export default function ServiceSelector() {
                 const response = await fetch('/api/citas/batch', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ citas: reservas, cantidadPersonas }),
+                    body: JSON.stringify({ citas: reservas, cantidadPersonas: parseInt(cantidadPersonas || '1') }),
                 });
                 const data = await response.json();
                 if (!response.ok) {
@@ -376,7 +376,7 @@ export default function ServiceSelector() {
             setFechaActiva(null);
             setNombre('');
             setTelefono('');
-            setCantidadPersonas(1);
+            setCantidadPersonas('1');
             setMostrarAlerta(false);
             setConfirmando(false);
         } catch (error) {
@@ -499,7 +499,7 @@ export default function ServiceSelector() {
                             <Label className="mb-2 block">
                                 Horarios disponibles
                             </Label>
-                            {cantidadPersonas > 1 && (
+                            {parseInt(cantidadPersonas || '1') > 1 && (
                                 <Alert className="mb-3 sm:mb-4 py-2 sm:py-3">
                                     <AlertCircle className="h-4 w-4" />
                                     <AlertDescription className="text-xs sm:text-sm">
@@ -571,7 +571,7 @@ export default function ServiceSelector() {
                                                                 const horariosConsecutivos: string[] = [];
                                                                 const [h, m] = hora.split(':').map(Number);
                                                                 let tiempoActual = h * 60 + m;
-                                                                for (let i = 0; i < cantidadPersonas; i++) {
+                                                                for (let i = 0; i < parseInt(cantidadPersonas || '1'); i++) {
                                                                     const horas = Math.floor(tiempoActual / 60);
                                                                     const minutos = tiempoActual % 60;
                                                                     horariosConsecutivos.push(`${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`);
@@ -591,7 +591,7 @@ export default function ServiceSelector() {
                                                                         key={hora}
                                                                         type="button"
                                                                         variant={todasSeleccionadas ? 'default' : 'outline'}
-                                                                        className={cantidadPersonas > 1 ? "w-full text-[10px] sm:text-xs py-3 sm:py-4 col-span-2" : "w-full text-xs sm:text-sm py-2"}
+                                                                        className={parseInt(cantidadPersonas || '1') > 1 ? "w-full text-[10px] sm:text-xs py-3 sm:py-4 col-span-2" : "w-full text-xs sm:text-sm py-2"}
                                                                         onClick={() => {
                                                                             if (fechas.length > 1) {
                                                                                 handleMultipleTimeSelect(fechas, hora);
@@ -600,10 +600,10 @@ export default function ServiceSelector() {
                                                                             }
                                                                         }}
                                                                     >
-                                                                        {cantidadPersonas > 1 ? (
+                                                                        {parseInt(cantidadPersonas || '1') > 1 ? (
                                                                             <span className="flex flex-col items-center leading-tight">
                                                                                 <span className="font-semibold">{hora} - {ultimoHorario}</span>
-                                                                                <span className="text-[9px] sm:text-[10px] opacity-70">({cantidadPersonas}p)</span>
+                                                                                <span className="text-[9px] sm:text-[10px] opacity-70">({cantidadPersonas} Personas)</span>
                                                                             </span>
                                                                         ) : hora}
                                                                     </Button>
@@ -667,16 +667,33 @@ export default function ServiceSelector() {
                                 <Input
                                     id="cantidadPersonas"
                                     type="number"
+                                    min="1"
+                                    max="10"
                                     value={cantidadPersonas}
                                     onChange={(e) => {
-                                        const valor = parseInt(e.target.value);
-                                        setCantidadPersonas(valor);
+                                        const valor = e.target.value;
+                                        // Permitir borrar completamente el campo
+                                        if (valor === '') {
+                                            setCantidadPersonas('');
+                                            return;
+                                        }
+                                        const num = parseInt(valor);
+                                        if (!isNaN(num) && num >= 1 && num <= 10) {
+                                            setCantidadPersonas(valor);
+                                        }
+                                    }}
+                                    onBlur={(e) => {
+                                        // Al perder el foco, si está vacío o inválido, poner 1
+                                        const valor = e.target.value;
+                                        if (valor === '' || parseInt(valor) < 1) {
+                                            setCantidadPersonas('1');
+                                        }
                                     }}
                                     className="mt-1.5"
                                     required
                                 />
                                 <p className="text-xs text-muted-foreground mt-1.5">
-                                    {cantidadPersonas > 1 ? (
+                                    {parseInt(cantidadPersonas || '1') > 1 ? (
                                         <span className="font-medium text-orange-600 dark:text-orange-400">
                                             ⚠️ Al seleccionar un horario, se reservarán {cantidadPersonas} turnos consecutivos automáticamente
                                         </span>
