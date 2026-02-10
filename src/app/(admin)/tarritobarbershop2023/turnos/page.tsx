@@ -215,11 +215,13 @@ export default function TurnosAdmin() {
                             className="pl-10"
                         />
                     </div>
-                    <div>
+                    <div className="relative">
+                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                         <Input
                             type="date"
                             value={filtroFecha}
                             onChange={(e) => setFiltroFecha(e.target.value)}
+                            className="pl-10"
                         />
                     </div>
                     <div>
