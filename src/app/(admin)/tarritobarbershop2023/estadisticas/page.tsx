@@ -268,7 +268,12 @@ export default function EstadisticasAdmin() {
                     <div className="grid md:grid-cols-2 gap-6">
                         <div>
                             <Label htmlFor="fechaEspecifica" className="text-sm font-medium mb-2 block">Por Día</Label>
-                            <Input id="fechaEspecifica" type="date" value={fechaEspecifica} onChange={(e) => setFechaEspecifica(e.target.value)} className="w-full" />
+                            <div className="relative">
+                                {!fechaEspecifica && (
+                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                )}
+                                <Input id="fechaEspecifica" type="date" value={fechaEspecifica} onChange={(e) => setFechaEspecifica(e.target.value)} className={fechaEspecifica ? "w-full" : "w-full pl-10"} />
+                            </div>
                         </div>
                         <div className="flex items-center">
                             {fechaEspecifica ? (
@@ -278,7 +283,7 @@ export default function EstadisticasAdmin() {
                                             <Calendar className="h-6 w-6 text-green-600 dark:text-green-400" />
                                         </div>
                                         <div>
-                                            <p className="text-sm text-muted-foreground">{new Date(fechaEspecifica + 'T00:00:00').toLocaleDateString('es-AR', {weekday: 'long',day: 'numeric',month: 'long'})}</p>
+                                            <p className="text-sm text-muted-foreground">{new Date(fechaEspecifica + 'T00:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                                             <p className="text-3xl font-bold text-green-600 dark:text-green-400">${calcularGanancia(fechaEspecifica).toLocaleString('es-AR')}</p>
                                         </div>
                                     </div>
@@ -292,7 +297,12 @@ export default function EstadisticasAdmin() {
                     <div className="grid md:grid-cols-2 gap-6">
                         <div>
                             <Label htmlFor="semanaEspecifica" className="text-sm font-medium mb-2 block">Por Semana</Label>
-                            <Input id="semanaEspecifica" type="week" value={semanaEspecifica} onChange={(e) => setSemanaEspecifica(e.target.value)} className="w-full" />
+                            <div className="relative">
+                                {!semanaEspecifica && (
+                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                )}
+                                <Input id="semanaEspecifica" type="week" value={semanaEspecifica} onChange={(e) => setSemanaEspecifica(e.target.value)} className={semanaEspecifica ? "w-full" : "w-full pl-10"} />
+                            </div>
                         </div>
                         <div className="flex items-center">
                             {semanaEspecifica ? (
@@ -326,7 +336,12 @@ export default function EstadisticasAdmin() {
                     <div className="grid md:grid-cols-2 gap-6">
                         <div>
                             <Label htmlFor="mesEspecifico" className="text-sm font-medium mb-2 block">Por Mes</Label>
-                            <Input id="mesEspecifico" type="month" value={mesEspecifico} onChange={(e) => setMesEspecifico(e.target.value)} className="w-full" />
+                            <div className="relative">
+                                {!mesEspecifico && (
+                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                )}
+                                <Input id="mesEspecifico" type="month" value={mesEspecifico} onChange={(e) => setMesEspecifico(e.target.value)} className={mesEspecifico ? "w-full" : "w-full pl-10"} />
+                            </div>
                         </div>
                         <div className="flex items-center">
                             {mesEspecifico ? (
@@ -336,7 +351,7 @@ export default function EstadisticasAdmin() {
                                             <Calendar className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                                         </div>
                                         <div>
-                                            <p className="text-sm text-muted-foreground">{new Date(mesEspecifico + '-01').toLocaleDateString('es-AR', {month: 'long',year: 'numeric'})}</p>
+                                            <p className="text-sm text-muted-foreground">{new Date(mesEspecifico + '-01').toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}</p>
                                             <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
                                                 ${(() => {
                                                     const [año, mes] = mesEspecifico.split('-');
