@@ -110,6 +110,13 @@ export default function TurnosAdmin() {
         const matchEstado = filtroEstado === 'todos' || turno.estado === filtroEstado;
         const matchFecha = !filtroFecha || turno.fecha.startsWith(filtroFecha);
         return matchBusqueda && matchEstado && matchFecha;
+    }).sort((a, b) => {
+        // Ordenar primero por fecha
+        const fechaCompare = a.fecha.localeCompare(b.fecha);
+        if (fechaCompare !== 0) return fechaCompare;
+
+        // Si las fechas son iguales, ordenar por hora
+        return a.hora.localeCompare(b.hora);
     });
 
     const turnosHoy = turnos.filter(t => {
