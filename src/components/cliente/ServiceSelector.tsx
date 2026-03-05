@@ -695,7 +695,7 @@ export default function ServiceSelector() {
                                 <p className="text-xs text-muted-foreground mt-1.5">
                                     {parseInt(cantidadPersonas || '1') > 1 ? (
                                         <span className="font-medium text-orange-600 dark:text-orange-400">
-                                            ⚠️ Al seleccionar un horario, se reservarán {cantidadPersonas} turnos consecutivos automáticamente
+                                            ⚠️ Debera seleccionar nuevamente el horario arriba, y se reservarán {cantidadPersonas} turnos consecutivos automáticamente
                                         </span>
                                     ) : 'Si van varias personas, indicá la cantidad'}
                                 </p>
