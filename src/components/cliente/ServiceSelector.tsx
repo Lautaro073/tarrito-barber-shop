@@ -448,8 +448,16 @@ export default function ServiceSelector() {
                                     const today = new Date();
                                     today.setHours(0, 0, 0, 0);
                                     if (date < today) return true;
-                                    if (date.getDay() === 0) return true;
                                     const diaSemana = date.getDay();
+                                    // Viernes y sábado siempre habilitados por decisión de negocio
+                                    if (diaSemana === 5 || diaSemana === 6) return false;
+
+                                    const diaSemanaNombre = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][diaSemana];
+                                    const configDia = configuracionHorarios?.find((d: { dia: string; activo: boolean }) => d.dia === diaSemanaNombre);
+
+                                    // Si el día está desactivado en configuración, bloquearlo
+                                    if (configDia && !configDia.activo) return true;
+
                                     const ahora = new Date();
                                     const horaActual = ahora.getHours();
                                     const diaActual = ahora.getDay();
@@ -462,10 +470,11 @@ export default function ServiceSelector() {
                                     inicioProximaSemana.setDate(finSemanaActual.getDate() + 1);
                                     const finProximaSemana = new Date(inicioProximaSemana);
                                     finProximaSemana.setDate(inicioProximaSemana.getDate() + 6);
-                                    if (diaSemana === 5 || diaSemana === 6) {
-                                        return false;
-                                    }
-                                    if (diaSemana >= 1 && diaSemana <= 4) {
+                                    if (diaSemana === 0 || (diaSemana >= 1 && diaSemana <= 4)) {
+                                        // Domingo también respeta lógica semanal (no queda abierto en todas las semanas)
+                                        if (diaSemana === 0 && !configDia?.activo) {
+                                            return true;
+                                        }
                                         const esPostDomingo16 = diaActual === 0 && horaActual >= 16;
                                         if (esPostDomingo16) {
                                             if (date >= inicioProximaSemana && date <= finProximaSemana) {
