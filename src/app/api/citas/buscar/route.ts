@@ -1,37 +1,123 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
+
+const normalizeText = (value = '') =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const normalizePhone = (value = '') => value.replace(/\D/g, '');
+
+const levenshteinDistance = (a: string, b: string) => {
+  const matrix = Array.from({ length: b.length + 1 }, (_, i) => [i]);
+
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      matrix[i][j] = b.charAt(i - 1) === a.charAt(j - 1)
+        ? matrix[i - 1][j - 1]
+        : Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+    }
+  }
+
+  return matrix[b.length][a.length];
+};
+
+const isSimilarName = (storedName = '', inputName = '') => {
+  const stored = normalizeText(storedName);
+  const input = normalizeText(inputName);
+
+  if (!input) return false;
+  if (stored.includes(input) || input.includes(stored)) return true;
+
+  const inputTokens = input.split(' ').filter(Boolean);
+  const storedTokens = stored.split(' ').filter(Boolean);
+
+  if (inputTokens.length > 0 && inputTokens.every(token =>
+    storedTokens.some(storedToken => storedToken.includes(token))
+  )) {
+    return true;
+  }
+
+  const maxDistance = input.length <= 5 ? 1 : 2;
+  return levenshteinDistance(stored, input) <= maxDistance;
+};
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { nombre, telefono, fecha } = body;
+    const {
+      nombre = '',
+      telefono = '',
+      fecha = '',
+      flexible = false,
+    } = body;
 
-    // Validación
-    if (!nombre || !telefono || !fecha) {
+    if (!flexible && (!nombre || !telefono || !fecha)) {
       return NextResponse.json(
         { error: 'Faltan datos requeridos' },
         { status: 400 }
       );
     }
 
-    // Buscar turno en Firebase (búsqueda más flexible)
+    if (flexible && !nombre.trim() && !telefono.trim() && !fecha.trim()) {
+      return NextResponse.json(
+        { error: 'Ingresá al menos un dato para buscar tu turno' },
+        { status: 400 }
+      );
+    }
+
     const citasRef = collection(db, 'citas');
     const allCitasSnapshot = await getDocs(citasRef);
-    
-    // Filtrar manualmente para mayor flexibilidad
+
     const turnosEncontrados = allCitasSnapshot.docs.filter(doc => {
       const data = doc.data();
-      const nombreMatch = data.nombre?.toLowerCase().trim() === nombre.toLowerCase().trim();
-      const telefonoMatch = data.telefono?.replace(/\D/g, '') === telefono.replace(/\D/g, '');
-      
-      // Comparar solo la parte de la fecha (YYYY-MM-DD)
+      const estadoValido = ['pendiente', 'confirmado'].includes(data.estado);
+
+      if (!estadoValido) return false;
+
+      const nombreMatch = flexible
+        ? isSimilarName(data.nombre, nombre)
+        : normalizeText(data.nombre || '') === normalizeText(nombre);
+
+      const telefonoBuscado = normalizePhone(telefono);
+      const telefonoGuardado = normalizePhone(data.telefono || '');
+      const telefonoMatch = flexible
+        ? Boolean(telefonoBuscado) && telefonoGuardado.includes(telefonoBuscado)
+        : telefonoGuardado === telefonoBuscado;
+
       const dataFecha = data.fecha?.substring(0, 10) || data.fecha;
       const fechaMatch = dataFecha === fecha;
-      
-      const estadoValido = ['pendiente', 'confirmado'].includes(data.estado);
-      
-      return nombreMatch && telefonoMatch && fechaMatch && estadoValido;
+
+      if (!flexible) {
+        return nombreMatch && telefonoMatch && fechaMatch;
+      }
+
+      const criteriosCompletados = [
+        Boolean(nombre.trim()),
+        Boolean(telefono.trim()),
+        Boolean(fecha),
+      ];
+      const coincidencias = [
+        nombreMatch,
+        telefonoMatch,
+        fechaMatch,
+      ];
+
+      return criteriosCompletados.every((criterioCompletado, index) =>
+        !criterioCompletado || coincidencias[index]
+      );
     });
 
     if (turnosEncontrados.length === 0) {
@@ -41,15 +127,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Obtener información de todos los turnos encontrados
     const serviciosRef = collection(db, 'servicios');
     const serviciosSnapshot = await getDocs(serviciosRef);
-    
+
     const turnosConDetalles = turnosEncontrados.map(turnoDoc => {
       const turnoData = turnoDoc.data();
       const servicio = serviciosSnapshot.docs.find(doc => doc.id === turnoData.servicioId);
-      const servicioNombre = servicio 
-        ? `${servicio.data().icono} ${servicio.data().nombre}` 
+      const servicioNombre = servicio
+        ? `${servicio.data().icono} ${servicio.data().nombre}`
         : 'Servicio';
 
       return {

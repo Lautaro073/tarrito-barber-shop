@@ -34,12 +34,21 @@ export default function Header() {
                     <Link href="/reservar" className="text-foreground/80 hover:text-foreground font-medium transition-colors">
                         Reservar Turno
                     </Link>
+                    <Link href="/ver-turno" className="text-foreground/80 hover:text-foreground font-medium transition-colors">
+                        Ver Turno
+                    </Link>
                     <ThemeToggle />
                 </nav>
 
                 {/* Botones móvil */}
                 <div className="flex items-center gap-2 md:hidden">
                     <ThemeToggle />
+                    <Link
+                        href="/ver-turno"
+                        className="px-3 py-2 border border-input bg-background rounded-lg text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+                    >
+                        Ver turno
+                    </Link>
                     <Link
                         href="/reservar"
                         className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
@@ -49,12 +58,20 @@ export default function Header() {
                 </div>
 
                 {/* Botón desktop */}
-                <Link
-                    href="/reservar"
-                    className="hidden md:block px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
-                >
-                    Agendar Turno
-                </Link>
+                <div className="hidden md:flex items-center gap-2">
+                    <Link
+                        href="/ver-turno"
+                        className="px-6 py-2.5 border border-input bg-background rounded-lg font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+                    >
+                        Ver turno
+                    </Link>
+                    <Link
+                        href="/reservar"
+                        className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                    >
+                        Agendar Turno
+                    </Link>
+                </div>
             </div>
         </header>
     );
