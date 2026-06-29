@@ -2,6 +2,16 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+For the appointment chatbot, configure these server-side variables:
+
+```bash
+NVIDIA_API_KEY=your_key
+NVIDIA_BASE_URL=https://integrate.api.nvidia.com
+NVIDIA_MODEL=meta/llama-3.1-8b-instruct
+```
+
+Do not expose the NVIDIA key with `NEXT_PUBLIC_`.
+
 First, run the development server:
 
 ```bash
