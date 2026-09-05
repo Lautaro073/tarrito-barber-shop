@@ -664,8 +664,11 @@ export default function ServiceSelector() {
                                 <Label htmlFor="telefono">Teléfono/WhatsApp</Label>
                                 <Input
                                     id="telefono"
+                                    type="tel"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
                                     value={telefono}
-                                    onChange={(e) => setTelefono(e.target.value)}
+                                    onChange={(e) => setTelefono(e.target.value.replace(/\D/g, ''))}
                                     placeholder="3865123456"
                                     className="mt-1.5"
                                     required
