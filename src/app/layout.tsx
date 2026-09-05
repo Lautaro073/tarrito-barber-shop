@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
@@ -17,10 +17,20 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Tarrito Barber Shop - Agendá tu Turno",
   description: "La mejor barbería de Aguilares, Tucumán. Agenda tu cita online fácil y rápido.",
+  manifest: "/manifest.webmanifest",
   icons: {
-    icon: '/assets/tarritoOscuro.png',
-    apple: '/assets/tarritoOscuro.png',
+    icon: "/assets/tarritoOscuro.png",
+    apple: "/icons/icon-192.png",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Tarrito",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a0a0a",
 };
 
 export default function RootLayout({
