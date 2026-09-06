@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 
 const root = new URL("../", import.meta.url);
 
@@ -41,4 +43,17 @@ test("los iconos PWA tienen las dimensiones declaradas", async () => {
     width: 512,
     height: 512,
   });
+});
+
+test("los iconos PWA tienen fondo blanco", async () => {
+  for (const size of [192, 512]) {
+    const { data } = await sharp(
+      fileURLToPath(new URL(`public/icons/icon-${size}.png`, root)),
+    )
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+
+    assert.deepEqual([...data.subarray(0, 4)], [255, 255, 255, 255]);
+  }
 });
