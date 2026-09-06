@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   description: "La mejor barbería de Aguilares, Tucumán. Agenda tu cita online fácil y rápido.",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/assets/tarritoOscuro.png",
+    icon: "/assets/tarritoClaro.png",
     apple: "/icons/icon-192.png",
   },
   appleWebApp: {
