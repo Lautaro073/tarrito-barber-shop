@@ -73,7 +73,7 @@ export default function PushNotificationPrompt() {
   return <Dialog open={open} onOpenChange={(value) => { if (!value) postpone(); }}>
     <DialogContent className="sm:max-w-sm" showCloseButton={!busy}>
       <DialogHeader>
-        <Bell className="mb-2 h-7 w-7 text-primary" aria-hidden="true" />
+        <Bell className="mb-2 h-7 w-7 self-center text-primary" aria-hidden="true" />
         <DialogTitle>Activá las notificaciones</DialogTitle>
         <DialogDescription>¿Querés recibir notificaciones de Tarrito Barber Shop en este dispositivo?</DialogDescription>
       </DialogHeader>
