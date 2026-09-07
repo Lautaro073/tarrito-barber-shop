@@ -8,6 +8,19 @@ export interface ScheduleDay {
 export interface Availability { enabled: boolean; remaining: number }
 export type AvailabilityEvent = 'opened' | 'low' | 'full' | 'reopened';
 
+export const ARGENTINA_TIME_ZONE = 'America/Argentina/Buenos_Aires';
+
+const argentinaFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: ARGENTINA_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  weekday: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
 export function transition(before: Availability, after: Availability): AvailabilityEvent | null {
   if (!after.enabled) return null;
   if (!before.enabled) return after.remaining > 0 ? 'opened' : null;
@@ -18,8 +31,13 @@ export function transition(before: Availability, after: Availability): Availabil
 }
 
 export function argentinaClock(now = new Date()) {
-  const local = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-  return { date: local.toISOString().slice(0, 10), minute: local.getUTCHours() * 60 + local.getUTCMinutes(), day: local.getUTCDay() };
+  const parts = Object.fromEntries(argentinaFormatter.formatToParts(now).map(part => [part.type, part.value]));
+  const weekdays: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    minute: Number(parts.hour) * 60 + Number(parts.minute),
+    day: weekdays[parts.weekday],
+  };
 }
 
 export function upcomingDates(now = new Date()) {
@@ -56,7 +74,7 @@ export function availability(date: string, schedules: ScheduleDay[], durations: 
 }
 
 export function availabilityMessage(type: AvailabilityEvent, date: string) {
-  const label = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date(date + 'T12:00:00Z'));
+  const label = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: ARGENTINA_TIME_ZONE }).format(new Date(date + 'T12:00:00Z'));
   const messages = {
     opened: { title: 'Turnos habilitados', body: `Ya podés reservar para el ${label}.` },
     low: { title: 'Quedan pocos turnos', body: `Al ${label} le quedan solo uno o dos turnos disponibles.` },

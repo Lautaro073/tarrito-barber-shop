@@ -5,7 +5,7 @@ import ts from 'typescript';
 
 const source = await readFile(new URL('../src/lib/availability-policy.ts', import.meta.url), 'utf8');
 const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } });
-const { transition, availability, argentinaClock, availabilityMessage } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+const { transition, availability, argentinaClock, availabilityMessage, ARGENTINA_TIME_ZONE } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
 const state = (remaining, enabled = true) => ({ remaining, enabled });
 
 test('only the four intended transitions produce events', () => {
@@ -27,6 +27,16 @@ test('weekly opening starts at Sunday 16 Argentina time', () => {
   assert.equal(availability('2026-09-07', schedules, [40], [], new Date('2026-09-06T18:59:00Z')).enabled, false);
   assert.deepEqual(availability('2026-09-07', schedules, [40], [], new Date('2026-09-06T19:00:00Z')), state(3));
   assert.equal(availability('2026-09-14', schedules, [40], [], new Date('2026-09-06T19:00:00Z')).enabled, false);
+});
+
+test('clock uses the Buenos Aires timezone across the local day boundary', () => {
+  assert.equal(ARGENTINA_TIME_ZONE, 'America/Argentina/Buenos_Aires');
+  assert.deepEqual(argentinaClock(new Date('2026-09-06T02:59:00Z')), {
+    date: '2026-09-05', minute: 23 * 60 + 59, day: 6,
+  });
+  assert.deepEqual(argentinaClock(new Date('2026-09-06T03:00:00Z')), {
+    date: '2026-09-06', minute: 0, day: 0,
+  });
 });
 
 test('bookings consume slots, cancellation releases them and duplicate services do not inflate count', () => {
