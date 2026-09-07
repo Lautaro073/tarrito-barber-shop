@@ -65,6 +65,14 @@ test('keeps the Firebase error code in a safe push diagnostic', async () => {
   });
 });
 
+test('stores push registrations with Firebase Admin instead of the client SDK', async () => {
+  const source = await readFile(new URL('../src/app/api/push/register/route.ts', import.meta.url), 'utf8');
+
+  assert.match(source, /pushAdmin/);
+  assert.doesNotMatch(source, /firebase\/firestore/);
+  assert.doesNotMatch(source, /@\/lib\/firebase['"]/);
+});
+
 test('worker displays data messages once and opens the app on click', async () => {
   const { GET } = await loadTs('../src/app/firebase-messaging-sw.js/route.ts');
   const response = GET();

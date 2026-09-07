@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { FieldValue } from 'firebase-admin/firestore';
+import { pushAdmin } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get('origin');
@@ -20,13 +20,14 @@ export async function POST(request: NextRequest) {
   }
   try {
     const id = createHash('sha256').update(installationId).digest('hex');
-    await setDoc(doc(db, 'pushSubscriptions', id), {
+    const { db } = pushAdmin();
+    await db.collection('pushSubscriptions').doc(id).set({
       installationId,
-      updatedAt: serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
     return NextResponse.json({ success: true });
-  } catch {
-    console.error('No se pudo registrar la suscripcion push');
+  } catch (error) {
+    console.error('No se pudo registrar la suscripcion push', error);
     return NextResponse.json({ error: 'No se pudo registrar el dispositivo' }, { status: 503 });
   }
 }
