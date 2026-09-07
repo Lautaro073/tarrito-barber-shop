@@ -3,6 +3,7 @@ import { db } from '@/lib/firebase';
 import { doc, updateDoc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { sendEmail, BARBER_EMAIL } from '@/lib/email-config';
 import { turnoCanceladoEmail } from '@/lib/email-templates';
+import { seedAvailability, notifyAvailability } from '@/lib/availability-notifications';
 
 export async function PATCH(
   request: NextRequest,
@@ -21,11 +22,16 @@ export async function PATCH(
     }
 
     const citaRef = doc(db, 'citas', id);
+    const previous = (await getDoc(citaRef)).data();
+    const date = previous?.fecha?.slice(0, 10);
+    const changesCapacity = (previous?.estado === 'cancelado') !== (estado === 'cancelado');
+    if (date && changesCapacity) await seedAvailability([date]);
     await updateDoc(citaRef, {
       estado,
       updatedAt: new Date().toISOString(),
     });
 
+    if (date && changesCapacity) notifyAvailability([date]);
     // Si fue cancelado por el cliente, enviar email al barbero
     if (estado === 'cancelado' && canceladoPorCliente) {
       try {

@@ -3,6 +3,7 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { sendEmail, BARBER_EMAIL } from '@/lib/email-config';
 import { multipleTurnosEmail } from '@/lib/email-templates';
+import { seedAvailability, notifyAvailability } from '@/lib/availability-notifications';
 
 export async function POST(request: NextRequest) {
   try {
@@ -72,6 +73,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const affectedDates = citas.map((cita: { fecha: string }) => cita.fecha.slice(0, 10));
+    await seedAvailability(affectedDates);
     // Crear todas las citas
     const citasCreadas = [];
     for (const cita of citas) {
@@ -95,6 +98,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    notifyAvailability(affectedDates);
     // Enviar UN SOLO email con todas las citas
     try {
       const emailHtml = multipleTurnosEmail({

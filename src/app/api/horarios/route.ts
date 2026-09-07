@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, getDocs, query, deleteDoc, doc } from 'firebase/firestore';
+import { seedAvailability, notifyAvailability } from '@/lib/availability-notifications';
+import { upcomingDates } from '@/lib/availability-policy';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { horarios } = body;
+    const dates = upcomingDates();
+    await seedAvailability(dates);
 
     // Eliminar horarios anteriores
     const horariosRef = collection(db, 'horarios');
@@ -18,6 +22,7 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString(),
     });
 
+    notifyAvailability(dates);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error al guardar horarios:', error);

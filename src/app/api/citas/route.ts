@@ -3,6 +3,7 @@ import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { sendEmail, BARBER_EMAIL } from '@/lib/email-config';
 import { nuevoTurnoEmail } from '@/lib/email-templates';
+import { seedAvailability, notifyAvailability } from '@/lib/availability-notifications';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    await seedAvailability([fechaStr]);
     // Guardar en Firebase
     const citaRef = await addDoc(collection(db, 'citas'), {
       servicioId,
@@ -62,6 +64,7 @@ export async function POST(request: NextRequest) {
       createdAt: serverTimestamp(),
     });
 
+    notifyAvailability([fechaStr]);
     // Enviar email al barbero
     try {
       const emailHtml = nuevoTurnoEmail({
