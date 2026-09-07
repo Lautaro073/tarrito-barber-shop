@@ -24,32 +24,12 @@ test('prompt only for installed apps with undecided permission, respecting seven
   assert.equal(shouldPromptPush(true, 'default', 'invalid', now), true);
 });
 
-test('registers Firebase messaging and resolves the installation ID', async () => {
-  const { registerFirebaseInstallation } = await loadTs('../src/lib/firebase-registration.ts');
-  const calls = [];
-  let registeredCallback;
-  const registration = { scope: '/' };
-  const result = registerFirebaseInstallation({
-    messaging: {},
-    vapidKey: 'public-vapid-key',
-    serviceWorkerRegistration: registration,
-    onRegistered: (_messaging, callback) => {
-      calls.push('listen');
-      registeredCallback = callback;
-      return () => calls.push('unsubscribe');
-    },
-    register: async (_messaging, options) => {
-      calls.push(['register', options]);
-      registeredCallback('installation-id');
-    },
-  });
+test('converts a URL-safe VAPID key for PushManager', async () => {
+  const { vapidKeyToArrayBuffer } = await loadTs('../src/lib/web-push-client.ts');
+  const bytes = new Uint8Array([4, 255, 10, 100]);
+  const key = Buffer.from(bytes).toString('base64url');
 
-  assert.equal(await result, 'installation-id');
-  assert.deepEqual(calls, [
-    'listen',
-    ['register', { vapidKey: 'public-vapid-key', serviceWorkerRegistration: registration }],
-    'unsubscribe',
-  ]);
+  assert.deepEqual([...new Uint8Array(vapidKeyToArrayBuffer(key))], [...bytes]);
 });
 
 test('keeps the Firebase error code in a safe push diagnostic', async () => {
@@ -69,11 +49,22 @@ test('stores push registrations with Firebase Admin instead of the client SDK', 
   const source = await readFile(new URL('../src/app/api/push/register/route.ts', import.meta.url), 'utf8');
 
   assert.match(source, /pushAdmin/);
+  assert.match(source, /endpoint/);
+  assert.match(source, /p256dh/);
+  assert.match(source, /auth/);
+  assert.doesNotMatch(source, /installationId/);
   assert.doesNotMatch(source, /firebase\/firestore/);
   assert.doesNotMatch(source, /@\/lib\/firebase['"]/);
 });
 
-test('worker displays data messages once and opens the app on click', async () => {
+test('sends availability alerts through standard Web Push', async () => {
+  const source = await readFile(new URL('../src/lib/availability-notifications.ts', import.meta.url), 'utf8');
+
+  assert.match(source, /webpush\.sendNotification/);
+  assert.doesNotMatch(source, /sendEachForMulticast/);
+});
+
+test('worker displays native push messages and opens the app on click', async () => {
   const { GET } = await loadTs('../src/app/firebase-messaging-sw.js/route.ts');
   const response = GET();
   assert.match(response.headers.get('Content-Type'), /javascript/);
@@ -82,19 +73,21 @@ test('worker displays data messages once and opens the app on click', async () =
   const shown = [];
   const opened = [];
   vm.runInNewContext(await response.text(), {
-    importScripts() {},
     URL,
-    firebase: { initializeApp() {}, messaging: () => ({ onBackgroundMessage(fn) { handler = fn; } }) },
     self: {
       location: { origin: 'https://example.com' },
-      addEventListener(name, fn) { if (name === 'notificationclick') click = fn; },
+      skipWaiting() {},
+      addEventListener(name, fn) {
+        if (name === 'push') handler = fn;
+        if (name === 'notificationclick') click = fn;
+      },
       registration: { showNotification(...args) { shown.push(args); } },
-      clients: { matchAll: async () => [], openWindow: async (url) => opened.push(url) },
+      clients: { claim: async () => {}, matchAll: async () => [], openWindow: async (url) => opened.push(url) },
     },
   });
-  await handler({ notification: { title: 'Already displayed by FCM' } });
-  assert.equal(shown.length, 0);
-  await handler({ data: { title: 'Test', body: 'Message' } });
+  let pushed;
+  handler({ data: { json: () => ({ title: 'Test', body: 'Message', url: '/reservar' }) }, waitUntil(promise) { pushed = promise; } });
+  await pushed;
   assert.equal(shown.length, 1);
   assert.equal(shown[0][0], 'Test');
   let pending;

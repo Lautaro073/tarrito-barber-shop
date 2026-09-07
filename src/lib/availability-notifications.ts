@@ -1,7 +1,30 @@
 import { after } from 'next/server';
 import { FieldPath } from 'firebase-admin/firestore';
+import webpush, { type PushSubscription } from 'web-push';
 import { pushAdmin } from '@/lib/firebase-admin';
 import { availability, availabilityMessage, transition, upcomingDates, type Availability, type ScheduleDay } from '@/lib/availability-policy';
+
+let webPushConfigured = false;
+
+function configureWebPush() {
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  if (!publicKey || !privateKey) throw new Error('Faltan credenciales VAPID para Web Push');
+  if (!webPushConfigured) {
+    webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:lautarojimenez02@gmail.com', publicKey, privateKey);
+    webPushConfigured = true;
+  }
+}
+
+function toPushSubscription(data: FirebaseFirestore.DocumentData): PushSubscription | null {
+  if (typeof data.endpoint !== 'string' || typeof data.p256dh !== 'string' || typeof data.auth !== 'string') return null;
+  return { endpoint: data.endpoint, keys: { p256dh: data.p256dh, auth: data.auth } };
+}
+
+function isGonePushSubscription(error: unknown) {
+  return typeof error === 'object' && error !== null && 'statusCode' in error &&
+    (error.statusCode === 404 || error.statusCode === 410);
+}
 
 // A transaction serializes the daily state and creates its notification together.
 async function observe(date: string, seed: boolean, refresh = false) {
@@ -52,7 +75,8 @@ export function notifyAvailability(dates: string[]) {
 }
 
 export async function deliverPendingPush() {
-  const { db, messaging } = pushAdmin();
+  const { db } = pushAdmin();
+  configureWebPush();
   const events = await db.collection('pushEvents').where('status', '==', 'pending').limit(20).get();
   for (const event of events.docs) {
     const claimed = await db.runTransaction(async tx => {
@@ -83,18 +107,23 @@ export async function deliverPendingPush() {
         cursor = page.docs[page.docs.length - 1].id;
         const recipients = page.docs.filter(doc => !sent.has(doc.id));
         if (!recipients.length) continue;
-        const result = await messaging.sendEachForMulticast({
-          fids: recipients.map(doc => doc.data().installationId),
-          data: { title: payload.title, body: payload.body, tag: event.id, url: '/reservar' },
-          webpush: { headers: { TTL: '3600' } },
-        });
+        const message = JSON.stringify({ title: payload.title, body: payload.body, tag: event.id, url: '/reservar' });
+        const results = await Promise.all(recipients.map(async recipient => {
+          const subscription = toPushSubscription(recipient.data());
+          if (!subscription) return { success: false, invalid: true };
+          try {
+            await webpush.sendNotification(subscription, message, { TTL: 3600, urgency: 'high' });
+            return { success: true, invalid: false };
+          } catch (error) {
+            return { success: false, invalid: isGonePushSubscription(error) };
+          }
+        }));
         const batch = db.batch();
-        result.responses.forEach((response, index) => {
+        results.forEach((result, index) => {
           const recipient = recipients[index];
-          const invalid = ['messaging/registration-token-not-registered', 'messaging/invalid-registration-token'].includes(response.error?.code || '');
-          if (response.success || invalid) batch.set(event.ref.collection('deliveries').doc(recipient.id), { at: new Date().toISOString() });
+          if (result.success || result.invalid) batch.set(event.ref.collection('deliveries').doc(recipient.id), { at: new Date().toISOString() });
           else failed++;
-          if (invalid) batch.delete(recipient.ref);
+          if (result.invalid) batch.delete(recipient.ref);
         });
         await batch.commit();
         await event.ref.update({ leaseUntil: Date.now() + 300000 });

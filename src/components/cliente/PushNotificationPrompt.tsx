@@ -18,10 +18,9 @@ export default function PushNotificationPrompt() {
     const initialize = async () => {
       const standalone = window.matchMedia('(display-mode: standalone)').matches ||
         Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
-      if (!standalone || !('Notification' in window) || Notification.permission === 'denied') return;
+      if (!standalone || !('Notification' in window) || !('serviceWorker' in navigator) ||
+          !('PushManager' in window) || Notification.permission === 'denied') return;
       try {
-        const { isSupported } = await import('firebase/messaging');
-        if (!await isSupported() || disposed) return;
         const response = await fetch('/api/push/config', { signal: AbortSignal.timeout(10000) });
         if (!response.ok) return;
         const config = await response.json();

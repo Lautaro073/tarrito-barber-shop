@@ -1,9 +1,7 @@
-import { app } from '@/lib/firebase';
-import { registerFirebaseInstallation } from '@/lib/firebase-registration';
 import { pushStage } from '@/lib/push-diagnostics';
+import { subscriptionUsesVapidKey, vapidKeyToArrayBuffer } from '@/lib/web-push-client';
 
 let pending: Promise<void> | null = null;
-let listening = false;
 
 async function withTimeout<T>(operation: Promise<T>): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -19,32 +17,32 @@ async function withTimeout<T>(operation: Promise<T>): Promise<T> {
 export function registerPushDevice(vapidKey: string): Promise<void> {
   if (pending) return pending;
   pending = (async () => {
-    const { getMessaging, onMessage, onRegistered, register } = await pushStage('firebase-module', () => import('firebase/messaging'));
-    await pushStage('service-worker-register', () => withTimeout(navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' })));
+    const registered = await pushStage('service-worker-register', () => withTimeout(navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' })));
+    await pushStage('service-worker-update', async () => {
+      await registered.update();
+      const nextWorker = registered.installing || registered.waiting;
+      if (!nextWorker || nextWorker.state === 'activated') return;
+      await withTimeout(new Promise<void>((resolve) => {
+        nextWorker.addEventListener('statechange', () => {
+          if (nextWorker.state === 'activated') resolve();
+        });
+      }));
+    });
     const registration = await pushStage('service-worker-ready', () => withTimeout(navigator.serviceWorker.ready));
-    const messaging = getMessaging(app);
-    const installationId = await pushStage('firebase-register', () => registerFirebaseInstallation({
-      messaging,
-      register,
-      onRegistered,
-      vapidKey,
-      serviceWorkerRegistration: registration,
-    }));
+    let subscription = await pushStage('push-subscription-read', () => registration.pushManager.getSubscription());
+    if (subscription && !subscriptionUsesVapidKey(subscription, vapidKey)) {
+      await pushStage('push-subscription-replace', () => subscription!.unsubscribe());
+      subscription = null;
+    }
+    subscription ??= await pushStage('push-subscribe', () => withTimeout(registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: vapidKeyToArrayBuffer(vapidKey),
+    })));
     const response = await pushStage('backend-register', () => fetch('/api/push/register', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ installationId }), signal: AbortSignal.timeout(15000),
+      body: JSON.stringify({ subscription: subscription.toJSON() }), signal: AbortSignal.timeout(15000),
     }));
     if (!response.ok) throw { stage: 'backend-register', code: `http-${response.status}`, message: 'Registration endpoint rejected the installation' };
-    if (!listening) {
-      onMessage(messaging, (payload) => {
-        const data = payload.notification || payload.data || {};
-        void registration.showNotification(data.title || 'Tarrito Barber Shop', {
-          body: data.body || '', icon: '/icons/icon-192.png',
-          tag: payload.data?.tag, data: { url: payload.data?.url || '/' },
-        }).catch(() => undefined);
-      });
-      listening = true;
-    }
   })().finally(() => { pending = null; });
   return pending;
 }

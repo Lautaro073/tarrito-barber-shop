@@ -14,15 +14,22 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: 'Datos invalidos' }, { status: 400 });
   }
-  const installationId = body?.installationId;
-  if (typeof installationId !== 'string' || installationId.length < 10 || installationId.length > 256 || /\s/.test(installationId)) {
-    return NextResponse.json({ error: 'Identificador invalido' }, { status: 400 });
+  const endpoint = body?.subscription?.endpoint;
+  const p256dh = body?.subscription?.keys?.p256dh;
+  const auth = body?.subscription?.keys?.auth;
+  if (typeof endpoint !== 'string' || endpoint.length > 2048 || !endpoint.startsWith('https://') ||
+      typeof p256dh !== 'string' || !p256dh || p256dh.length > 256 ||
+      typeof auth !== 'string' || !auth || auth.length > 256) {
+    return NextResponse.json({ error: 'Suscripcion invalida' }, { status: 400 });
   }
   try {
-    const id = createHash('sha256').update(installationId).digest('hex');
+    const id = createHash('sha256').update(endpoint).digest('hex');
     const { db } = pushAdmin();
     await db.collection('pushSubscriptions').doc(id).set({
-      installationId,
+      endpoint,
+      p256dh,
+      auth,
+      userAgent: request.headers.get('user-agent') || '',
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
     return NextResponse.json({ success: true });
