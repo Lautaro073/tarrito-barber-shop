@@ -5,6 +5,7 @@ import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PUSH_SNOOZE_KEY, PUSH_SNOOZE_MS, shouldPromptPush } from '@/lib/push-policy';
+import { toPushDiagnostic } from '@/lib/push-diagnostics';
 
 export default function PushNotificationPrompt() {
   const [open, setOpen] = useState(false);
@@ -63,8 +64,17 @@ export default function PushNotificationPrompt() {
       const { registerPushDevice } = await import('@/lib/push-client');
       await registerPushDevice(vapid.current);
       setOpen(false);
-    } catch {
-      setError('No pudimos activar las notificaciones. Revisá tu conexión y volvé a intentar.');
+    } catch (registrationError) {
+      const diagnostic = toPushDiagnostic('unknown', registrationError);
+      try {
+        await fetch('/api/push/diagnostics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(diagnostic),
+          keepalive: true,
+        });
+      } catch {}
+      setError(`No pudimos activar las notificaciones. Código: ${diagnostic.stage}/${diagnostic.code}`);
     } finally {
       setBusy(false);
     }

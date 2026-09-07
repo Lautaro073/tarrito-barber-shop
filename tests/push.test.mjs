@@ -52,6 +52,19 @@ test('registers Firebase messaging and resolves the installation ID', async () =
   ]);
 });
 
+test('keeps the Firebase error code in a safe push diagnostic', async () => {
+  const { toPushDiagnostic } = await loadTs('../src/lib/push-diagnostics.ts');
+  const error = Object.assign(new Error('Messaging: Registration API returned 403.'), {
+    code: 'messaging/token-subscribe-failed',
+  });
+
+  assert.deepEqual(toPushDiagnostic('firebase-register', error), {
+    stage: 'firebase-register',
+    code: 'messaging/token-subscribe-failed',
+    message: 'Messaging: Registration API returned 403.',
+  });
+});
+
 test('worker displays data messages once and opens the app on click', async () => {
   const { GET } = await loadTs('../src/app/firebase-messaging-sw.js/route.ts');
   const response = GET();
