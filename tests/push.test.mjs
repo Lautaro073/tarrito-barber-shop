@@ -24,6 +24,34 @@ test('prompt only for installed apps with undecided permission, respecting seven
   assert.equal(shouldPromptPush(true, 'default', 'invalid', now), true);
 });
 
+test('registers Firebase messaging and resolves the installation ID', async () => {
+  const { registerFirebaseInstallation } = await loadTs('../src/lib/firebase-registration.ts');
+  const calls = [];
+  let registeredCallback;
+  const registration = { scope: '/' };
+  const result = registerFirebaseInstallation({
+    messaging: {},
+    vapidKey: 'public-vapid-key',
+    serviceWorkerRegistration: registration,
+    onRegistered: (_messaging, callback) => {
+      calls.push('listen');
+      registeredCallback = callback;
+      return () => calls.push('unsubscribe');
+    },
+    register: async (_messaging, options) => {
+      calls.push(['register', options]);
+      registeredCallback('installation-id');
+    },
+  });
+
+  assert.equal(await result, 'installation-id');
+  assert.deepEqual(calls, [
+    'listen',
+    ['register', { vapidKey: 'public-vapid-key', serviceWorkerRegistration: registration }],
+    'unsubscribe',
+  ]);
+});
+
 test('worker displays data messages once and opens the app on click', async () => {
   const { GET } = await loadTs('../src/app/firebase-messaging-sw.js/route.ts');
   const response = GET();

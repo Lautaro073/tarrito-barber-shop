@@ -1,4 +1,5 @@
 import { app } from '@/lib/firebase';
+import { registerFirebaseInstallation } from '@/lib/firebase-registration';
 
 let pending: Promise<void> | null = null;
 let listening = false;
@@ -17,15 +18,20 @@ async function withTimeout<T>(operation: Promise<T>): Promise<T> {
 export function registerPushDevice(vapidKey: string): Promise<void> {
   if (pending) return pending;
   pending = (async () => {
-    const { getMessaging, getToken, onMessage } = await import('firebase/messaging');
+    const { getMessaging, onMessage, onRegistered, register } = await import('firebase/messaging');
     await withTimeout(navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' }));
     const registration = await withTimeout(navigator.serviceWorker.ready);
     const messaging = getMessaging(app);
-    const token = await withTimeout(getToken(messaging, { vapidKey, serviceWorkerRegistration: registration }));
-    if (!token) throw new Error('No token');
+    const installationId = await registerFirebaseInstallation({
+      messaging,
+      register,
+      onRegistered,
+      vapidKey,
+      serviceWorkerRegistration: registration,
+    });
     const response = await fetch('/api/push/register', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token }), signal: AbortSignal.timeout(15000),
+      body: JSON.stringify({ installationId }), signal: AbortSignal.timeout(15000),
     });
     if (!response.ok) throw new Error('Registration failed');
     if (!listening) {

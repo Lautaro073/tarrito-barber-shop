@@ -20,8 +20,8 @@ self.addEventListener('notificationclick', (event) => {
     return self.clients.openWindow(destination);
   })());
 });
-importScripts('https://www.gstatic.com/firebasejs/12.8.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/12.8.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging-compat.js');
 firebase.initializeApp(${JSON.stringify(config)});
 firebase.messaging().onBackgroundMessage((payload) => {
   if (payload.notification) return;

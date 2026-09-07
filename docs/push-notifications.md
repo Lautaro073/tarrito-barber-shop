@@ -23,7 +23,7 @@ El conteo reproduce la grilla actual: franjas, duracion de servicios activos, to
 
 ## Persistencia y reintentos
 
-`pushSubscriptions` contiene los dispositivos registrados. `pushAvailability` guarda el estado por fecha. Una transaccion crea en `pushEvents` cada cambio junto con su nueva revision. Los envios se procesan despues de responder a la reserva mediante Next.js `after`.
+`pushSubscriptions` contiene los Firebase Installation IDs registrados. `pushAvailability` guarda el estado por fecha. Una transaccion crea en `pushEvents` cada cambio junto con su nueva revision. Los envios se procesan despues de responder a la reserva mediante Next.js `after`.
 
 Los eventos pendientes se reintentan en el siguiente cambio de disponibilidad o invocacion del endpoint protegido. Las entregas confirmadas se guardan en la subcoleccion `deliveries`; tokens invalidos se eliminan. No se promete entrega exactamente una vez si el proceso muere entre FCM y el registro de la entrega. El tag estable evita acumular el mismo aviso en el dispositivo.
 

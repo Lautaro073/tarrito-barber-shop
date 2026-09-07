@@ -84,7 +84,7 @@ export async function deliverPendingPush() {
         const recipients = page.docs.filter(doc => !sent.has(doc.id));
         if (!recipients.length) continue;
         const result = await messaging.sendEachForMulticast({
-          tokens: recipients.map(doc => doc.data().token),
+          fids: recipients.map(doc => doc.data().installationId),
           data: { title: payload.title, body: payload.body, tag: event.id, url: '/reservar' },
           webpush: { headers: { TTL: '3600' } },
         });

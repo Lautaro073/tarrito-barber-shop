@@ -14,14 +14,14 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: 'Datos invalidos' }, { status: 400 });
   }
-  const token = body?.token;
-  if (typeof token !== 'string' || token.length < 20 || token.length > 4096 || /\s/.test(token)) {
-    return NextResponse.json({ error: 'Token invalido' }, { status: 400 });
+  const installationId = body?.installationId;
+  if (typeof installationId !== 'string' || installationId.length < 10 || installationId.length > 256 || /\s/.test(installationId)) {
+    return NextResponse.json({ error: 'Identificador invalido' }, { status: 400 });
   }
   try {
-    const id = createHash('sha256').update(token).digest('hex');
+    const id = createHash('sha256').update(installationId).digest('hex');
     await setDoc(doc(db, 'pushSubscriptions', id), {
-      token,
+      installationId,
       updatedAt: serverTimestamp(),
     }, { merge: true });
     return NextResponse.json({ success: true });
